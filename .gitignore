@@ -11,3 +11,5 @@ frontend/dist/
 # Env & OS
 .env
 .DS_Store
+
+relatorios_gerados/
