@@ -103,3 +103,75 @@ def obter_resumo_corrida(ano: int, gp: str):
     except Exception as e:
         print(f"Erro no resumo da corrida: {e}")
         return {"erro": f"Falha ao gerar análise da corrida: {str(e)}"}
+    
+
+def comparar_telemetria(ano: int, gp: str, piloto1: str, piloto2: str, sessao: str = 'R'):
+    """
+    Extrai a volta mais rápida de dois pilotos na corrida, 
+    cruza a distância e compara dados completos de telemetria (Velocidade, Acelerador, Freio, Marcha, RPM).
+    """
+    try:
+        session = fastf1.get_session(ano, gp, sessao)
+        session.load(telemetry=True, weather=False, messages=False)
+        
+        # Extrai as voltas primeiro para validar se existem
+        laps1 = session.laps.pick_driver(piloto1)
+        laps2 = session.laps.pick_driver(piloto2)
+        
+        if laps1.empty or laps2.empty:
+            return {"erro": "Piloto não encontrado ou sem voltas para comparar."}
+
+        lap1 = laps1.pick_fastest()
+        lap2 = laps2.pick_fastest()
+
+        if lap1 is None or lap1.empty or pd.isna(lap1.get('LapTime')):
+            return {"erro": f"Não foi possível encontrar uma volta rápida válida para {piloto1}."}
+        if lap2 is None or lap2.empty or pd.isna(lap2.get('LapTime')):
+            return {"erro": f"Não foi possível encontrar uma volta rápida válida para {piloto2}."}
+
+        # Definindo as colunas alvo da telemetria bruta
+        colunas_alvo = ['Distance', 'Speed', 'Throttle', 'Brake', 'nGear', 'RPM']
+        
+        # Extraindo e renomeando dinamicamente para o Piloto 1
+        tel1 = lap1.get_telemetry()[colunas_alvo].rename(columns={
+            'Speed': f'Speed_{piloto1}',
+            'Throttle': f'Throttle_{piloto1}',
+            'Brake': f'Brake_{piloto1}',
+            'nGear': f'nGear_{piloto1}',
+            'RPM': f'RPM_{piloto1}'
+        })
+        
+        # Extraindo e renomeando dinamicamente para o Piloto 2
+        tel2 = lap2.get_telemetry()[colunas_alvo].rename(columns={
+            'Speed': f'Speed_{piloto2}',
+            'Throttle': f'Throttle_{piloto2}',
+            'Brake': f'Brake_{piloto2}',
+            'nGear': f'nGear_{piloto2}',
+            'RPM': f'RPM_{piloto2}'
+        })
+        
+        # Ordenar pela distância percorrida na pista
+        tel1 = tel1.sort_values('Distance')
+        tel2 = tel2.sort_values('Distance')
+        
+        # Junta os dados alinhando a distância mais próxima
+        merged = pd.merge_asof(tel1, tel2, on='Distance', direction='nearest')
+        
+        # Reduzir a resolução para evitar sobrecarga de dados no front (1 a cada 3 pontos)
+        merged = merged.iloc[::3, :]
+        
+        # Tratamento final de Infs e NaNs antes do JSON
+        merged = merged.replace([np.inf, -np.inf], np.nan)
+        merged = merged.where(pd.notnull(merged), None)
+        
+        return {
+            "driver1": piloto1,
+            "driver2": piloto2,
+            "lap_time_1": round(lap1['LapTime'].total_seconds(), 3),
+            "lap_time_2": round(lap2['LapTime'].total_seconds(), 3),
+            "telemetry": merged.to_dict(orient='records')
+        }
+        
+    except Exception as e:
+        print(f"Erro na telemetria: {e}")
+        return {"erro": f"Falha ao processar telemetria bruta: {str(e)}"}

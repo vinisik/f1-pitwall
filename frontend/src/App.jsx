@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Dashboard from './pages/Dashboard';
 import RaceAnalysis from './pages/RaceAnalysis';
+import TelemetryCompare from './pages/TelemetryCompare';
 
 function App() {
   const [activeTab, setActiveTab] = useState('live');
@@ -21,10 +22,17 @@ function App() {
         >
           Análise Completa da Corrida
         </button>
+        <button 
+          onClick={() => setActiveTab('telemetry')}
+          style={{ background: 'none', border: 'none', color: activeTab === 'telemetry' ? '#00aeeef' : '#888', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}
+        >
+          Comparador de Telemetria
+        </button>
       </nav>
 
-      {/* Renderização Condicional das Abas */}
-      {activeTab === 'live' ? <Dashboard /> : <RaceAnalysis />}
+      {activeTab === 'live' && <Dashboard />}
+      {activeTab === 'analysis' && <RaceAnalysis />}
+      {activeTab === 'telemetry' && <TelemetryCompare />}
     </div>
   );
 }
