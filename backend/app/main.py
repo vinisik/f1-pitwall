@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.services.f1_data import obter_telemetria_piloto
+from app.services.reports import gerar_pdf_estrategia
 
 app = FastAPI(title="F1 Strategy Engine API")
 
@@ -28,4 +30,17 @@ def get_telemetry(year: int, gp: str, driver: str):
 
 @app.post("/api/export-report")
 def export_strategy_report():
-    return {"status": "Geração de PDF em desenvolvimento"}
+    """
+    Gera o relatório com o logo no topo de todas as páginas e retorna o arquivo.
+    """
+    dados_mock = {"status": "ok"} 
+    
+    try:
+        caminho_arquivo = gerar_pdf_estrategia(dados_mock)
+        return FileResponse(
+            path=caminho_arquivo, 
+            filename="relatorio_oficial.pdf", 
+            media_type="application/pdf"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar o PDF: {str(e)}")
