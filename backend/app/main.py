@@ -1,3 +1,5 @@
+from pydantic import BaseModel
+from typing import Any, Dict
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +17,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+class StrategyData(BaseModel):
+    driver: str
+    prediction: Dict[str, Any]
+    action: str
 
 @app.get("/")
 def read_root():
@@ -59,17 +66,13 @@ def predict_strategy(year: int, gp: str, driver: str):
     }
 
 @app.post("/api/export-report")
-def export_strategy_report():
-    """
-    Gera o relatório com o logo no topo de todas as páginas e retorna o arquivo.
-    """
-    dados_mock = {"status": "ok"} 
-    
+def export_strategy_report(data: StrategyData):
     try:
-        caminho_arquivo = gerar_pdf_estrategia(dados_mock)
+        # data.model_dump() converte o objeto Pydantic em um dicionário para o ReportLab
+        caminho_arquivo = gerar_pdf_estrategia(data.model_dump())
         return FileResponse(
             path=caminho_arquivo, 
-            filename="relatorio_oficial.pdf", 
+            filename=f"relatorio_{data.driver}.pdf", 
             media_type="application/pdf"
         )
     except Exception as e:
