@@ -3,7 +3,7 @@ from typing import Any, Dict
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from app.services.f1_data import obter_telemetria_piloto
+from app.services.f1_data import obter_telemetria_piloto, obter_resumo_corrida
 from app.services.reports import gerar_pdf_estrategia
 from app.services.ml_engine import prever_degradacao_pneu
 
@@ -64,6 +64,15 @@ def predict_strategy(year: int, gp: str, driver: str):
         "prediction": previsao,
         "action": recomendacao
     }
+
+@app.get("/api/race-summary")
+def get_race_summary(year: int, gp: str):
+    data = obter_resumo_corrida(year, gp)
+    
+    if isinstance(data, dict) and "erro" in data:
+        raise HTTPException(status_code=400, detail=data["erro"])
+        
+    return {"gp": gp, "year": year, "results": data}
 
 @app.post("/api/export-report")
 def export_strategy_report(data: StrategyData):
