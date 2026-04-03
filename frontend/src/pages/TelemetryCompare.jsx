@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { 
+  LineChart, Line, 
+  ScatterChart, Scatter, 
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
+} from 'recharts';
 
 export default function TelemetryCompare() {
   const [year, setYear] = useState('2023');
@@ -11,6 +15,8 @@ export default function TelemetryCompare() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const [activeIndex, setActiveIndex] = useState(null);
 
   const fetchTelemetry = async () => {
     setLoading(true);
@@ -38,71 +44,108 @@ export default function TelemetryCompare() {
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (err) {
       alert("Erro ao baixar o relatório de telemetria.");
     }
   };
 
   // Cores fixas para os pilotos para facilitar a leitura visual
-  const colorD1 = "#f84b45";
-  const colorD2 = "#3e7bf5"; 
+  const colorD1 = "#e10600"; // Vermelho
+  const colorD2 = "#0055ff"; // Azul
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#1e1e1e', color: '#fff', minHeight: '100vh' }}>
+    <div className="min-h-screen p-5 font-sans text-white bg-[#1e1e1e]">
       
       {/* Barra de Controles */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end', borderBottom: '1px solid #333', paddingBottom: '20px', marginBottom: '20px' }}>
+      <div className="flex flex-wrap items-end gap-4 pb-5 mb-5 border-b border-[#333]">
         <div>
-          <label style={{ display: 'block', fontSize: '12px', color: '#aaa' }}>ANO</label>
-          <input type="number" value={year} onChange={(e) => setYear(e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #444', backgroundColor: '#2a2a2a', color: '#fff', width: '80px' }} />
+          <label className="block mb-1 text-xs text-[#aaa]">ANO</label>
+          <input type="number" value={year} onChange={(e) => setYear(e.target.value)} className="w-20 p-2 text-white bg-[#2a2a2a] border border-[#444] rounded" />
         </div>
         <div>
-          <label style={{ display: 'block', fontSize: '12px', color: '#aaa' }}>GP</label>
-          <input type="text" value={gp} onChange={(e) => setGp(e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #444', backgroundColor: '#2a2a2a', color: '#fff' }} />
+          <label className="block mb-1 text-xs text-[#aaa]">GP</label>
+          <input type="text" value={gp} onChange={(e) => setGp(e.target.value)} className="p-2 text-white bg-[#2a2a2a] border border-[#444] rounded" />
         </div>
         <div>
-          <label style={{ display: 'block', fontSize: '12px', color: '#aaa' }}>PILOTO 1</label>
-          <input type="text" value={driver1} onChange={(e) => setDriver1(e.target.value.toUpperCase())} maxLength={3} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #444', backgroundColor: '#2a2a2a', color: '#fff', width: '80px' }} />
+          <label className="block mb-1 text-xs text-[#aaa]">PILOTO 1</label>
+          <input type="text" value={driver1} onChange={(e) => setDriver1(e.target.value.toUpperCase())} maxLength={3} className="w-20 p-2 text-white bg-[#2a2a2a] border border-[#444] rounded" />
         </div>
         <div>
-          <label style={{ display: 'block', fontSize: '12px', color: '#aaa' }}>PILOTO 2</label>
-          <input type="text" value={driver2} onChange={(e) => setDriver2(e.target.value.toUpperCase())} maxLength={3} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #444', backgroundColor: '#2a2a2a', color: '#fff', width: '80px' }} />
+          <label className="block mb-1 text-xs text-[#aaa]">PILOTO 2</label>
+          <input type="text" value={driver2} onChange={(e) => setDriver2(e.target.value.toUpperCase())} maxLength={3} className="w-20 p-2 text-white bg-[#2a2a2a] border border-[#444] rounded" />
         </div>
 
-        <button onClick={fetchTelemetry} disabled={loading} style={{ padding: '10px 20px', backgroundColor: '#00aeeef', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', marginLeft: 'auto' }}>
-          {loading ? 'Extraindo Sensores...' : 'Análise Profunda'}
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', gap: '10px', marginLeft: 'auto' }}>
+        <div className="flex gap-2 ml-auto">
           {data && (
-            <button onClick={downloadTelemetryReport} style={{ padding: '10px 20px', backgroundColor: '#4a4a4a', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
-              Baixar Relatório (PDF)
+            <button onClick={downloadTelemetryReport} className="px-5 py-2 text-white bg-[#4a4a4a] border-none rounded cursor-pointer">
+              Baixar PDF
             </button>
           )}
-          <button onClick={fetchTelemetry} disabled={loading} style={{ padding: '10px 20px', backgroundColor: '#00aeeef', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
-            {loading ? 'Extraindo Sensores...' : 'Análise Profunda'}
-          </button>
+          <button onClick={fetchTelemetry} disabled={loading} className="px-5 py-2 text-white bg-[#61C75D] border-none rounded cursor-pointer disabled:opacity-75">
+          {loading ? 'Processando Grid...' : 'Comparar Telemetria'}
+        </button>
         </div>
+      </div>
 
-      {error && <div style={{ color: '#ff4c4c', marginBottom: '20px' }}>{error}</div>}
+      {error && <div className="mb-5 text-[#ff4c4c]">{error}</div>}
 
       {data && (
-        <div style={{ backgroundColor: '#2a2a2a', padding: '20px', borderRadius: '8px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-            <h2 style={{ margin: 0 }}>Análise de Telemetria Sincronizada</h2>
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ margin: 0, color: colorD1 }}><strong>{data.driver1}:</strong> {data.lap_time_1}s</p>
-              <p style={{ margin: 0, color: colorD2 }}><strong>{data.driver2}:</strong> {data.lap_time_2}s</p>
+        <div className="p-5 bg-[#2a2a2a] rounded-lg">
+          
+          <div className="flex justify-between mb-4">
+            <h2 className="m-0 text-xl font-bold">Análise de Telemetria Sincronizada</h2>
+            <div className="text-right">
+              <p className="m-0" style={{ color: colorD1 }}><strong>{data.driver1}:</strong> {data.lap_time_1}s</p>
+              <p className="m-0" style={{ color: colorD2 }}><strong>{data.driver2}:</strong> {data.lap_time_2}s</p>
             </div>
+          </div>
+
+          {/* MAPA DA PISTA */}
+          <div className="h-[350px] mb-5 bg-[#1a1a1a] border border-[#333] rounded-lg">
+            <h3 className="mt-4 ml-4 text-sm text-[#aaa]">Traçado do Circuito (GPS X/Y)</h3>
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                <XAxis type="number" dataKey={`X_${data.driver1}`} name="Eixo X" hide domain={['dataMin', 'dataMax']} />
+                <YAxis type="number" dataKey={`Y_${data.driver1}`} name="Eixo Y" hide domain={['dataMin', 'dataMax']} />
+                
+                {/* Linha base da pista */}
+                <Scatter 
+                  name="Traçado" 
+                  data={data.telemetry} 
+                  line={{ stroke: '#555', strokeWidth: 4, strokeLinecap: 'round', strokeLinejoin: 'round' }} 
+                  fill="#555" 
+                  shape={() => null} 
+                />
+
+                {activeIndex !== null && data.telemetry[activeIndex] && (
+                  <Scatter 
+                    name="Posição Atual" 
+                    data={[data.telemetry[activeIndex]]} 
+                    fill="#e10600" 
+                    shape="circle" 
+                    isAnimationActive={false}
+                  />
+                )}
+              </ScatterChart>
+            </ResponsiveContainer>
           </div>
           
           {/* VELOCIDADE */}
-          <div style={{ height: '300px', marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '14px', color: '#aaa', margin: '0 0 10px 0' }}>Velocidade (km/h)</h3>
+          <div className="h-[300px] mb-5">
+            <h3 className="mb-2 text-sm text-[#aaa]">Velocidade (km/h)</h3>
             <ResponsiveContainer width="100%" height="100%">
-              {/* O syncId="f1-telemetry" conecta todos os gráficos */}
-              <LineChart data={data.telemetry} syncId="f1-telemetry">
+              {/* ADICIONE OS EVENTOS DE MOUSE AQUI */}
+              <LineChart 
+                data={data.telemetry} 
+                syncId="f1-telemetry"
+                onMouseMove={(state) => {
+                  if (state && state.isTooltipActive) {
+                    setActiveIndex(state.activeTooltipIndex);
+                  }
+                }}
+                onMouseLeave={() => setActiveIndex(null)}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                 <XAxis dataKey="Distance" type="number" domain={['dataMin', 'dataMax']} tickFormatter={(val) => `${(val/1000).toFixed(1)}km`} stroke="#ccc" hide />
                 <YAxis domain={['auto', 'auto']} stroke="#ccc" />
@@ -115,8 +158,8 @@ export default function TelemetryCompare() {
           </div>
 
           {/* ACELERADOR */}
-          <div style={{ height: '150px', marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '14px', color: '#aaa', margin: '0 0 10px 0' }}>Acelerador (%)</h3>
+          <div className="h-[150px] mb-5">
+            <h3 className="mb-2 text-sm text-[#aaa]">Acelerador (%)</h3>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.telemetry} syncId="f1-telemetry">
                 <CartesianGrid strokeDasharray="3 3" stroke="#444" />
@@ -130,8 +173,8 @@ export default function TelemetryCompare() {
           </div>
 
           {/* FREIO */}
-          <div style={{ height: '150px', marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '14px', color: '#aaa', margin: '0 0 10px 0' }}>Freio (%)</h3>
+          <div className="h-[150px] mb-5">
+            <h3 className="mb-2 text-sm text-[#aaa]">Freio (%)</h3>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.telemetry} syncId="f1-telemetry">
                 <CartesianGrid strokeDasharray="3 3" stroke="#444" />
@@ -144,9 +187,9 @@ export default function TelemetryCompare() {
             </ResponsiveContainer>
           </div>
 
-          {/* GRÁFICO 4: MARCHA (nGear) */}
-          <div style={{ height: '150px' }}>
-            <h3 style={{ fontSize: '14px', color: '#aaa', margin: '0 0 10px 0' }}>Marcha</h3>
+          {/* MARCHA */}
+          <div className="h-[150px]">
+            <h3 className="mb-2 text-sm text-[#aaa]">Marcha</h3>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.telemetry} syncId="f1-telemetry">
                 <CartesianGrid strokeDasharray="3 3" stroke="#444" />

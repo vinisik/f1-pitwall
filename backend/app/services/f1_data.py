@@ -130,7 +130,7 @@ def comparar_telemetria(ano: int, gp: str, piloto1: str, piloto2: str, sessao: s
             return {"erro": f"Não foi possível encontrar uma volta rápida válida para {piloto2}."}
 
         # Definindo as colunas alvo da telemetria bruta
-        colunas_alvo = ['Distance', 'Speed', 'Throttle', 'Brake', 'nGear', 'RPM']
+        colunas_alvo = ['Distance', 'Speed', 'Throttle', 'Brake', 'nGear', 'RPM', 'X', 'Y']
         
         # Extraindo e renomeando dinamicamente para o Piloto 1
         tel1 = lap1.get_telemetry()[colunas_alvo].rename(columns={
@@ -138,7 +138,9 @@ def comparar_telemetria(ano: int, gp: str, piloto1: str, piloto2: str, sessao: s
             'Throttle': f'Throttle_{piloto1}',
             'Brake': f'Brake_{piloto1}',
             'nGear': f'nGear_{piloto1}',
-            'RPM': f'RPM_{piloto1}'
+            'RPM': f'RPM_{piloto1}',
+            'X': f'X_{piloto1}',
+            'Y': f'Y_{piloto1}'
         })
         
         # Extraindo e renomeando dinamicamente para o Piloto 2
@@ -147,7 +149,9 @@ def comparar_telemetria(ano: int, gp: str, piloto1: str, piloto2: str, sessao: s
             'Throttle': f'Throttle_{piloto2}',
             'Brake': f'Brake_{piloto2}',
             'nGear': f'nGear_{piloto2}',
-            'RPM': f'RPM_{piloto2}'
+            'RPM': f'RPM_{piloto2}',
+            'X': f'X_{piloto2}',
+            'Y': f'Y_{piloto2}'
         })
         
         # Ordenar pela distância percorrida na pista

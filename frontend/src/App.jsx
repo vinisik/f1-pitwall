@@ -7,24 +7,25 @@ function App() {
   const [activeTab, setActiveTab] = useState('live');
 
   return (
-    <div style={{ backgroundColor: '#121212', minHeight: '100vh' }}>
+    <div className="min-h-screen bg-[#121212]">
       {/* Menu Superior */}
-      <nav style={{ padding: '15px 20px', backgroundColor: '#000', borderBottom: '2px solid #333', display: 'flex', gap: '20px' }}>
+      <nav className="flex gap-5 px-5 py-4 bg-black border-b-2 border-[#333]">
         <button 
           onClick={() => setActiveTab('live')}
-          style={{ background: 'none', border: 'none', color: activeTab === 'live' ? '#e10600' : '#888', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', borderBottom: activeTab === 'live' ? '2px solid #e10600' : 'none', paddingBottom: '5px' }}
+          className={`pb-1 text-base font-bold bg-transparent border-none cursor-pointer ${activeTab === 'live' ? 'text-[#e10600] border-b-2 border-b-[#e10600]' : 'text-[#888] border-b-2 border-b-transparent'}`}
         >
           Engine de Estratégia
         </button>
         <button 
           onClick={() => setActiveTab('analysis')}
-          style={{ background: 'none', border: 'none', color: activeTab === 'analysis' ? '#0055ff' : '#888', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', borderBottom: activeTab === 'analysis' ? '2px solid #0055ff' : 'none', paddingBottom: '5px' }}
+          className={`pb-1 text-base font-bold bg-transparent border-none cursor-pointer ${activeTab === 'analysis' ? 'text-[#0055ff] border-b-2 border-b-[#0055ff]' : 'text-[#888] border-b-2 border-b-transparent'}`}
         >
           Análise Completa da Corrida
         </button>
         <button 
           onClick={() => setActiveTab('telemetry')}
-          style={{ background: 'none', border: 'none', color: activeTab === 'telemetry' ? '#00aeeef' : '#888', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}
+          // CORREÇÃO: O código hexadecimal agora é #00aeef (6 caracteres)
+          className={`pb-1 text-base font-bold bg-transparent border-none cursor-pointer ${activeTab === 'telemetry' ? 'text-[#61C75D] border-b-2 border-b-[#00aeef]' : 'text-[#888] border-b-2 border-b-transparent'}`}
         >
           Comparador de Telemetria
         </button>

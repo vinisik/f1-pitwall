@@ -51,55 +51,55 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#1e1e1e', color: '#fff', minHeight: '100vh' }}>
+    <div className="min-h-screen p-5 font-sans text-white bg-[#1e1e1e]">
       
       {/* Barra de Filtros e Controlos */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end', borderBottom: '1px solid #333', paddingBottom: '20px', marginBottom: '20px' }}>
+      <div className="flex flex-wrap items-end gap-4 pb-5 mb-5 border-b border-[#333]">
         <div>
-          <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', color: '#aaa' }}>ANO</label>
-          <input type="number" value={year} onChange={(e) => setYear(e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #444', backgroundColor: '#2a2a2a', color: '#fff', width: '80px' }} />
+          <label className="block mb-1 text-xs text-[#aaa]">ANO</label>
+          <input type="number" value={year} onChange={(e) => setYear(e.target.value)} className="w-20 p-2 text-white bg-[#2a2a2a] border border-[#444] rounded" />
         </div>
         <div>
-          <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', color: '#aaa' }}>GRANDE PRÉMIO</label>
-          <input type="text" value={gp} onChange={(e) => setGp(e.target.value)} placeholder="Ex: Monaco" style={{ padding: '8px', borderRadius: '4px', border: '1px solid #444', backgroundColor: '#2a2a2a', color: '#fff' }} />
+          <label className="block mb-1 text-xs text-[#aaa]">GRANDE PRÉMIO</label>
+          <input type="text" value={gp} onChange={(e) => setGp(e.target.value)} placeholder="Ex: Monaco" className="p-2 text-white bg-[#2a2a2a] border border-[#444] rounded" />
         </div>
         <div>
-          <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', color: '#aaa' }}>PILOTO (SIGLA)</label>
-          <input type="text" value={driver} onChange={(e) => setDriver(e.target.value.toUpperCase())} maxLength={3} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #444', backgroundColor: '#2a2a2a', color: '#fff', width: '80px' }} />
+          <label className="block mb-1 text-xs text-[#aaa]">PILOTO (SIGLA)</label>
+          <input type="text" value={driver} onChange={(e) => setDriver(e.target.value.toUpperCase())} maxLength={3} className="w-20 p-2 text-white bg-[#2a2a2a] border border-[#444] rounded" />
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', marginLeft: 'auto' }}>
+        <div className="flex gap-2 ml-auto">
           {data && (
-            <button onClick={downloadReport} style={{ padding: '10px 20px', backgroundColor: '#4a4a4a', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
+            <button onClick={downloadReport} className="px-5 py-2 text-white bg-[#4a4a4a] border-none rounded cursor-pointer">
               Relatório PDF
             </button>
           )}
-          <button onClick={fetchStrategyData} disabled={loading} style={{ padding: '10px 20px', backgroundColor: '#e10600', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
+          <button onClick={fetchStrategyData} disabled={loading} className="px-5 py-2 text-white bg-[#e10600] border-none rounded cursor-pointer disabled:opacity-75">
             {loading ? 'A processar...' : 'Analisar Telemetria'}
           </button>
         </div>
       </div>
 
-      {error && <div style={{ color: '#ff4c4c', marginBottom: '20px' }}>{error}</div>}
+      {error && <div className="mb-5 text-[#ff4c4c]">{error}</div>}
 
       {/* Cards de Status */}
       {data && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '20px' }}>
-          <div style={{ backgroundColor: '#2a2a2a', padding: '20px', borderRadius: '8px', borderLeft: '4px solid #e10600' }}>
-            <h2 style={{ margin: '0 0 10px 0' }}>Status: {data.driver}</h2>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-5 mb-5">
+          <div className="p-5 bg-[#2a2a2a] border-l-4 border-[#e10600] rounded-lg">
+            <h2 className="m-0 mb-2 text-xl font-bold">Status: {data.driver}</h2>
             <p><strong>Pneu:</strong> {data.prediction.composto_analisado} ({data.prediction.degradacao_segundos_por_volta}s/volta)</p>
           </div>
-          <div style={{ backgroundColor: data.action.includes('PIT STOP') ? '#7a0000' : '#004a00', padding: '20px', borderRadius: '8px' }}>
-            <h2 style={{ margin: '0 0 10px 0' }}>Decisão de Estratégia</h2>
-            <h3 style={{ margin: 0 }}>{data.action}</h3>
+          <div className={`p-5 rounded-lg ${data.action.includes('PIT STOP') ? 'bg-[#7a0000]' : 'bg-[#004a00]'}`}>
+            <h2 className="m-0 mb-2 text-xl font-bold">Decisão de Estratégia</h2>
+            <h3 className="m-0 text-lg">{data.action}</h3>
           </div>
         </div>
       )}
 
       {/* Gráfico de Ritmo */}
       {laps.length > 0 && (
-        <div style={{ backgroundColor: '#2a2a2a', padding: '20px', borderRadius: '8px', height: '400px' }}>
-          <h2 style={{ marginTop: 0 }}>Análise de Ritmo em Tempo Real</h2>
+        <div className="h-[400px] p-5 bg-[#2a2a2a] rounded-lg">
+          <h2 className="mt-0 text-xl font-bold">Análise de Ritmo em Tempo Real</h2>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={laps}>
               <CartesianGrid strokeDasharray="3 3" stroke="#444" />
