@@ -4,7 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import axios from 'axios';
 
 export default function Dashboard() {
-  const [year, setYear] = useState('2023');
+  const [year, setYear] = useState('2025');
   const [gp, setGp] = useState('Brazil');
   const [driver, setDriver] = useState('VER');
   

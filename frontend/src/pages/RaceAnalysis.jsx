@@ -14,7 +14,7 @@ const getTireColor = (compound) => {
 };
 
 export default function RaceAnalysis() {
-  const [year, setYear] = useState('2023');
+  const [year, setYear] = useState('2025');
   const [gp, setGp] = useState('Brazil');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);

@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 
 export default function TelemetryCompare() {
-  const [year, setYear] = useState('2023');
+  const [year, setYear] = useState('2025');
   const [gp, setGp] = useState('Brazil');
   const [driver1, setDriver1] = useState('VER');
   const [driver2, setDriver2] = useState('NOR');

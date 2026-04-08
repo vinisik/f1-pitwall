@@ -12,4 +12,10 @@ frontend/dist/
 .env
 .DS_Store
 
+# Relatórios gerados
 relatorios_gerados/
+
+# Cache
+cache_f1/
+
+*.joblib

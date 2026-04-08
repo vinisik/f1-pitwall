@@ -1,43 +1,110 @@
+import os
 import pandas as pd
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
 import numpy as np
+import fastf1
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+import joblib
 
-def prever_degradacao_pneu(dados_laps: list):
-    """
-    Treina um modelo simples sob demanda para prever a perda de performance.
-    Recebe a lista de dicionários vinda de obter_telemetria_piloto().
-    """
-    df = pd.DataFrame(dados_laps)
-    
-    # Filtrando apenas voltas válidas (sem safety car, pit stops de entrada, etc)
-    # Voltas normais de corrida geralmente duram menos de 100 segundos na maioria das pistas  
-    df_clean = df.dropna(subset=['Time', 'TyreLife', 'Compound']).copy()
-    
-    composto_principal = df_clean['Compound'].mode()[0]
-    df_composto = df_clean[df_clean['Compound'] == composto_principal]
-    
-    if len(df_composto) < 10:
-        return {"erro": "Dados insuficientes para treinar o modelo neste composto."}
+# Caminho para guardar o modelo treinado na pasta de projeto
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "modelo_pneus_rf.joblib")
+ENCODER_PATH = os.path.join(os.path.dirname(__file__), "label_encoder.joblib")
 
-    # Separando Variáveis 
-    X = df_composto[['TyreLife']]
-    y = df_composto['Time']
+def preparar_dados_treino(ano, gps):
+    print(f"A descarregar dados de {len(gps)} corridas do ano {ano}...")
+    laps_data = []
+
+    for gp in gps:
+        try:
+            session = fastf1.get_session(ano, gp, 'R') # 
+            session.load(telemetry=False, weather=True)
+            
+            laps = session.laps
+            
+            # Filtra apenas voltas válidas (sem erros, sem pit stops, etc)
+            laps = laps.pick_quicklaps()
+            laps = laps.dropna(subset=['LapTime', 'Compound', 'TyreLife'])
+            
+            # Converte o Tempo de Volta para segundos em formato decimal
+            laps['LapTime_s'] = laps['LapTime'].dt.total_seconds()
+            
+            df = laps[['Driver', 'Compound', 'TyreLife', 'LapNumber', 'LapTime_s']].copy()
+            df['GP'] = gp
+            
+            laps_data.append(df)
+            print(f"[OK] Dados de {gp} extraídos com sucesso.")
+        except Exception as e:
+            print(f"[ERRO] Falha ao extrair {gp}: {str(e)}")
+
+    if not laps_data:
+        raise ValueError("Nenhum dado foi extraído com sucesso.")
+
+    # Junta todas as corridas num mega DataFrame
+    dataset = pd.concat(laps_data, ignore_index=True)
+    return dataset
+
+def treinar_modelo_degradacao():
+    """
+    Função principal para treinar a Rede de Machine Learning.
+    """
+    gps_treino = ['Bahrain', 'Japan', 'Australia', 'Azerbaijan', 'Miami', 'Monaco', 'Brazil', 'Abu Dhabi']
     
-    # Criando e treinando o modelo de regressão linear
-    modelo = LinearRegression()
-    modelo.fit(X, y)
+    df = preparar_dados_treino(2025, gps_treino)
     
-    # O coeficiente diz quantos segundos o piloto perde por volta
-    degradacao_por_volta = modelo.coef_[0]
+    print("\nA processar matriz de características (Feature Engineering)...")
     
-    # Previsão para as próximas 3 voltas baseadas na última volta registrada
-    ultima_volta = df_composto['TyreLife'].max()
-    proximas_voltas = np.array([[ultima_volta + 1], [ultima_volta + 2], [ultima_volta + 3]])
-    previsoes = modelo.predict(proximas_voltas)
+    le = LabelEncoder()
+    df['Compound_Encoded'] = le.fit_transform(df['Compound'])
     
-    return {
-        "composto_analisado": composto_principal,
-        "degradacao_segundos_por_volta": round(degradacao_por_volta, 3),
-        "previsao_proximas_voltas": [round(p, 3) for p in previsoes]
-    }
+    # Define o que a IA vai estudar (X) e o que ela tem de projetar (y)
+    # X = Idade do Composto e Qual é o Composto
+    X = df[['TyreLife', 'Compound_Encoded']]
+    # y = O tempo de volta (o ritmo)
+    y = df['LapTime_s']
+    
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    print("A iniciar o treino do algoritmo Random Forest (Isto pode demorar alguns segundos)...")
+    # Cria o algoritmo com 500 árvores de decisão
+    modelo = RandomForestRegressor(n_estimators=500, max_depth=10, random_state=42, n_jobs=-1)
+    modelo.fit(X_train, y_train)
+    
+    # Avalia a precisão do modelo
+    score = modelo.score(X_test, y_test)
+    print(f"Treino concluído! Precisão (R² Score): {score:.2f}")
+    
+    # Guarda o modelo treinado no disco para o desktop app usar instantaneamente
+    joblib.dump(modelo, MODEL_PATH)
+    joblib.dump(le, ENCODER_PATH)
+    print(f"Modelo guardado em: {MODEL_PATH}")
+
+
+def prever_degradacao_pneu(voltas_a_simular, composto):
+    if not os.path.exists(MODEL_PATH) or not os.path.exists(ENCODER_PATH):
+        return {"erro": "O modelo de IA ainda não foi treinado. Execute ml_engine.py primeiro."}
+    
+    # Carrega o cérebro
+    modelo = joblib.load(MODEL_PATH)
+    le = joblib.load(ENCODER_PATH)
+    
+    try:
+        composto_enc = le.transform([composto])[0]
+    except ValueError:
+        # Se pedirem um pneu estranho, assume MEDIUM como segurança
+        composto_enc = le.transform(['MEDIUM'])[0]
+    
+    tempos_previstos = []
+    
+    # Prevê o tempo de volta para cada idade do composto que for simular
+    for idade in voltas_a_simular:
+        # Passa as características do composto
+        features = pd.DataFrame([[idade, composto_enc]], columns=['TyreLife', 'Compound_Encoded'])
+        tempo_previsto = modelo.predict(features)[0]
+        tempos_previstos.append(round(tempo_previsto, 3))
+        
+    return tempos_previstos
+
+if __name__ == "__main__":
+    print("=== INICIANDO O CENTRO DE TREINAMENTO DA F1 ===")
+    treinar_modelo_degradacao()
