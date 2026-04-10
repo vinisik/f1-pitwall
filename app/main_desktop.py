@@ -1,3 +1,4 @@
+import os
 import sys
 import numpy as np
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
@@ -10,7 +11,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.gridspec import GridSpec
 from app.services.f1_data import obter_telemetria_piloto, obter_resumo_corrida, comparar_telemetria
-from app.services.reports import gerar_pdf_estrategia, gerar_pdf_telemetria
+from app.services.reports import gerar_pdf_estrategia, gerar_pdf_telemetria, gerar_pdf_resumo_corrida
 from app.services.ml_engine import prever_degradacao_pneu
 
 # Helpers de interface
@@ -369,7 +370,7 @@ class PitWallApp(QMainWindow):
         # Grid do Pódio e Gráfico
         self.oracle_podium = QLabel("Simule para ver o pódio previsto...")
         self.oracle_podium.setStyleSheet("font-size: 18px; color: #e2d014; font-weight: bold; padding: 10px; background-color: #2d2d30; border-radius: 6px;")
-        self.oracle_podium.setAlignment(Qt.AlignCenter)
+        self.oracle_podium.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.oracle_podium)
 
         self.oracle_chart_frame = QFrame()
@@ -377,6 +378,39 @@ class PitWallApp(QMainWindow):
         self.oracle_chart_frame.setStyleSheet("background-color: #2d2d30; border-radius: 8px;")
         layout.addWidget(self.oracle_chart_frame, stretch=1)
         self.oracle_canvas = None
+
+    def exportar_pdf_telemetria(self):
+        try:
+            ano = int(self.ind_year.text())
+            gp = self.ind_gp.text()
+            piloto = self.ind_d1.text().upper()
+            
+            if hasattr(self, 'ultimos_dados_ind'):
+                caminho = gerar_pdf_telemetria(ano, gp, piloto, self.ultimos_dados_ind)
+                self.ind_status.setText(f"Sucesso: {os.path.basename(caminho)}")
+            else:
+                self.ind_status.setText("Erro: Analise o piloto antes de exportar.")
+        except Exception as e:
+            self.ind_status.setText(f"Erro ao gerar PDF: {str(e)}")
+
+    def exportar_pdf_resumo(self):
+        try:
+            if not hasattr(self, 'ultimos_dados_resumo'):
+                self.sum_status.setText("Erro: Primeiro clique em 'Gerar Resumo'")
+                self.sum_status.setStyleSheet("color: #e10600;")
+                return
+
+            ano = int(self.sum_year.text())
+            gp = self.sum_gp.text()
+            
+            caminho = gerar_pdf_resumo_corrida(ano, gp, self.ultimos_dados_resumo)
+            
+            self.sum_status.setText(f"PDF salvo: {os.path.basename(caminho)}")
+            self.sum_status.setStyleSheet("color: #2ecc71;")
+            
+        except Exception as e:
+            self.sum_status.setText(f"Erro na exportação: {str(e)}")
+            self.sum_status.setStyleSheet("color: #e10600;")
 
     def iniciar_previsao_futura(self):
         self.btn_predict.setEnabled(False)
@@ -486,22 +520,22 @@ class PitWallApp(QMainWindow):
             for spine in ax.spines.values(): spine.set_edgecolor('#454548')
             ax.grid(color='#454548', linestyle='--', linewidth=0.5)
 
-        # 1. Gráfico de Ritmo (Pace + Pit Stops)
+        # Gráfico de Ritmo 
         ax_pace.plot(voltas, pace_a, color='#ffffff', linewidth=2, label="Plano A (1 Parada)")
         ax_pace.plot(voltas, pace_b, color='#e10600', linewidth=2, label="Plano B (2 Paradas)")
-        ax_pace.set_ylim(75, 85) # Ignora os picos de 100s do Pit Stop para não esmagar o gráfico
+        ax_pace.set_ylim(75, 85) 
         ax_pace.set_title("Projeção de Ritmo de Corrida (Ignorando tempo de Pit Lane)", color='#f5f5f5', pad=10)
         ax_pace.set_ylabel("Tempo de Volta (s)", color='#aaaaaa', fontsize=9)
         ax_pace.legend(facecolor='#2d2d30', edgecolor='#454548', labelcolor='white', fontsize=8)
 
-        # 2. Gráfico de Delta (Quem está à frente?)
-        ax_delta.fill_between(voltas, 0, delta, where=(np.array(delta) >= 0), color='#e10600', alpha=0.5, label="B à frente")
-        ax_delta.fill_between(voltas, 0, delta, where=(np.array(delta) < 0), color='#ffffff', alpha=0.5, label="A à frente")
+        # Gráfico de Delta 
+        ax_delta.fill_between(voltas, 0, delta, where=(np.array(delta) >= 0).tolist(), color='#e10600', alpha=0.5, label="B à frente")
+        ax_delta.fill_between(voltas, 0, delta, where=(np.array(delta) < 0).tolist(), color='#ffffff', alpha=0.5, label="A à frente")
         ax_delta.axhline(0, color='#aaaaaa', linewidth=1)
         ax_delta.set_title("Vantagem Cumulativa (Delta de Tempo Total)", color='#f5f5f5', pad=5, fontsize=10)
         ax_delta.set_ylabel("Delta (s)", color='#aaaaaa', fontsize=9)
 
-        # 3. Gráfico de Vida Útil do Pneu
+        # Gráfico de Vida Útil do Pneu
         ax_life.plot(voltas, vida_a, color='#ffffff', linestyle='-', linewidth=2)
         ax_life.plot(voltas, vida_b, color='#e10600', linestyle='-', linewidth=2)
         ax_life.axhline(30, color='#ffcc00', linestyle=':', linewidth=1.5) 
@@ -526,11 +560,19 @@ class PitWallApp(QMainWindow):
         self.sum_gp = QLineEdit("Brazil"); self.sum_gp.setFixedWidth(150)
         self.btn_summary = QPushButton("Gerar Resumo Oficial")
         self.btn_summary.clicked.connect(self.iniciar_resumo)
+
+        # Botão de Exportar PDF 
+        self.btn_export_sum = QPushButton("Exportar Relatório")
+        self.btn_export_sum.setStyleSheet("background-color: #454548; color: #ffffff;")
+        self.btn_export_sum.clicked.connect(self.exportar_pdf_resumo)
+        self.btn_export_sum.setEnabled(True)
+
         self.sum_status = QLabel("")
 
         control_layout.addWidget(self.sum_year)
         control_layout.addWidget(self.sum_gp)
         control_layout.addWidget(self.btn_summary)
+        control_layout.addWidget(self.btn_export_sum)
         control_layout.addWidget(self.sum_status)
         control_layout.addStretch()
         layout.addWidget(control_frame)
@@ -553,7 +595,9 @@ class PitWallApp(QMainWindow):
         self.worker_summary.start()
 
     def atualizar_resumo(self, resultados):
+        self.ultimos_dados_resumo = resultados
         self.btn_summary.setEnabled(True)
+        self.btn_export_tel.setEnabled(True) 
         self.sum_status.setText("Grid atualizado!")
         self.table.setRowCount(0) 
         
@@ -561,21 +605,21 @@ class PitWallApp(QMainWindow):
             self.table.insertRow(i)
             
             item_pos = QTableWidgetItem(str(row.get('chegada', '')))
-            item_pos.setTextAlignment(Qt.AlignCenter)
+            item_pos.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.table.setItem(i, 0, item_pos)
             
             item_piloto = QTableWidgetItem(str(row.get('piloto', '')))
-            item_piloto.setTextAlignment(Qt.AlignCenter)
+            item_piloto.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.table.setItem(i, 1, item_piloto)
             
             item_grid = QTableWidgetItem(f"P{row.get('largada', '')}")
-            item_grid.setTextAlignment(Qt.AlignCenter)
+            item_grid.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.table.setItem(i, 2, item_grid)
             
             var = row.get('saldo_posicoes', 0)
             var_text = f"+{var}" if var > 0 else str(var)
             var_item = QTableWidgetItem(var_text)
-            var_item.setTextAlignment(Qt.AlignCenter)
+            var_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             if var > 0: var_item.setForeground(QColor("#39b54a"))
             elif var < 0: var_item.setForeground(QColor("#ff4c4c"))
             self.table.setItem(i, 3, var_item)
@@ -585,7 +629,7 @@ class PitWallApp(QMainWindow):
             stints_layout = QHBoxLayout(stints_widget)
             stints_layout.setContentsMargins(10, 2, 10, 2)
             stints_layout.setSpacing(8)
-            stints_layout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            stints_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
             
             for stint in row.get('stints', []):
                 composto = stint.get('composto', 'UNKNOWN')
@@ -593,7 +637,7 @@ class PitWallApp(QMainWindow):
                 estilo = get_tire_style(composto)
                 
                 lbl_pneu = QLabel(f" {voltas}v ")
-                lbl_pneu.setAlignment(Qt.AlignCenter)
+                lbl_pneu.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 lbl_pneu.setStyleSheet(f"""
                     background-color: {estilo['bg']}; 
                     color: {estilo['fg']}; 
@@ -605,6 +649,7 @@ class PitWallApp(QMainWindow):
                 stints_layout.addWidget(lbl_pneu)
                 
             self.table.setCellWidget(i, 4, stints_widget)
+           
 
     # Análise de Telemetria
     def setup_telemetry_tab(self):
@@ -634,12 +679,20 @@ class PitWallApp(QMainWindow):
         self.ind_d1 = QLineEdit("VER"); self.ind_d1.setFixedWidth(80)
         self.btn_ind = QPushButton("Analisar Piloto")
         self.btn_ind.clicked.connect(self.iniciar_telemetria_ind)
+        
+        # Botão de Exportar PDF
+        self.btn_export_tel = QPushButton("Exportar PDF")
+        self.btn_export_tel.setStyleSheet("background-color: #454548; color: #ffffff;") # Cinza neutro
+        self.btn_export_tel.clicked.connect(self.exportar_pdf_telemetria)
+        self.btn_export_tel.setEnabled(True) # Habilitar somente após análise
+        
         self.ind_status = QLabel("")
 
         control_layout.addWidget(self.ind_year)
         control_layout.addWidget(self.ind_gp)
         control_layout.addWidget(self.ind_d1)
         control_layout.addWidget(self.btn_ind)
+        control_layout.addWidget(self.btn_export_tel)
         control_layout.addWidget(self.ind_status)
         control_layout.addStretch()
         layout.addWidget(control_frame)
@@ -665,6 +718,10 @@ class PitWallApp(QMainWindow):
         self.btn_ind.setEnabled(True)
         self.ind_status.setText(f"Telemetria de {d1} carregada. Tempo de Volta: {dados.get('lap_time_1', 'N/A')}s")
         self.ind_status.setStyleSheet("color: #2ecc71;")
+        self.btn_export_tel.setEnabled(True)
+        
+        # Armazena os dados para exportação posterior
+        self.ultimos_dados_ind = dados
 
         if self.ind_canvas:
             self.ind_chart_layout.removeWidget(self.ind_canvas)
