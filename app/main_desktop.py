@@ -106,10 +106,10 @@ class StrategyWorker(QThread):
                                             100 - ((voltas - 35) * 5.0)))
             vida_b = np.clip(vida_b, 0, 100)
 
-            # Calcula o tempo total de corrida (Soma cumulativa)
+            # Calcula o tempo total de corrida 
             race_time_a = np.cumsum(pace_a)
             race_time_b = np.cumsum(pace_b)
-            delta_b_to_a = race_time_a - race_time_b # Positivo significa que B é mais rápido
+            delta_b_to_a = race_time_a - race_time_b 
 
             dados_estrategia = {
                 "driver": self.driver,
@@ -182,37 +182,32 @@ class FuturePredictionWorker(QThread):
                 curva_degradacao = voltas * 0.08
             
             # SAFETY CAR
-            # Agora o Safety Car afeta TODOS os pilotos ao mesmo tempo no gráfico
             impacto_safety_car = np.zeros(self.laps)
             if random.random() < self.weather_chaos:
                 sc_start = random.randint(10, self.laps - 15)
                 sc_duration = random.randint(3, 6)
-                # Todos perdem 20 segundos de ritmo nessas voltas
                 impacto_safety_car[sc_start:sc_start+sc_duration] = 20.0 
             
             # Simulação de corrida para cada piloto
             for driver, base_pace in teams_pace.items():
                 
-                # Variabilidade Volta a Volta (Micro-erros, tráfego, zebras)
                 # Gera uma matriz onde cada volta tem uma variação aleatória de ~0.3s
                 lap_volatility = np.random.normal(0, 0.3, self.laps)
                 
-                # Pace Final junta tudo
+                # Pace Final 
                 pace = base_pace + curva_degradacao + lap_volatility + impacto_safety_car
                 
                 # Pit Stops
                 pit_lap = int(self.laps / 2) + random.randint(-4, 4) 
                 if pit_lap < self.laps:
                     # Simula o tempo de pit stop usando uma curva Normal
-                    # Média de 22s, mas com desvio padrão de 1.5s para criar variação realista
                     tempo_pit = np.random.normal(22.0, 1.5)
                     pace[pit_lap] += tempo_pit
                 
-                # 3. Erro Crítico (Fator Humano)
-                # 15% de chance do piloto dar uma travada de pneu feia ou espalhar na curva
+                # Fator de Erro Humano 
                 if random.random() < 0.15:
                     erro_lap = random.randint(1, self.laps - 1)
-                    pace[erro_lap] += random.uniform(2.5, 6.0) # Perde de 2 a 6 segundos
+                    pace[erro_lap] += random.uniform(2.5, 6.0) 
                 
                 total_time = np.sum(pace)
                 resultados[driver] = {"total_time": total_time, "pace": pace.tolist()}
@@ -283,8 +278,8 @@ class PitWallApp(QMainWindow):
         self.subtab_race_control = QWidget()
         self.subtab_oracle = QWidget()
         
-        self.subtabs_strategy.addTab(self.subtab_race_control, "Race Control - Simular Estratégia")
         self.subtabs_strategy.addTab(self.subtab_oracle, "Prever Corrida Futura")
+        self.subtabs_strategy.addTab(self.subtab_race_control, "Race Control - Estratégia")
         
         self.setup_race_control() 
         
@@ -740,6 +735,7 @@ class PitWallApp(QMainWindow):
 
         dist = np.array([r['Distance'] for r in valid_rows])
         
+        # Extrai os sensores para o piloto selecionado, tentando pegar a versão mais recente de cada um
         s1 = [get_val(r, f'Speed_{d1}') for r in valid_rows]
         thr1 = [get_val(r, f'Throttle_{d1}') for r in valid_rows]
         brk1 = [get_val(r, f'Brake_{d1}') for r in valid_rows]
@@ -798,6 +794,7 @@ class PitWallApp(QMainWindow):
         self.ind_canvas = FigureCanvas(fig)
         self.ind_chart_layout.addWidget(self.ind_canvas)
 
+        # Mostrar ponto no mapa ao passar o mouse sobre os gráficos de telemetria
         def on_mouse_move_ind(event):
             if event.inaxes in telemetry_axes:
                 x_mouse = event.xdata
@@ -845,6 +842,7 @@ class PitWallApp(QMainWindow):
         self.comp_canvas = None
 
     def iniciar_telemetria_comp(self):
+        """ Inicia a comparação de telemetria entre dois pilotos. """
         self.btn_comp.setEnabled(False)
         self.comp_status.setText("Cruzando telemetrias...")
         self.comp_status.setStyleSheet("color: #00aeef;")
@@ -858,6 +856,7 @@ class PitWallApp(QMainWindow):
         self.worker_comp.start()
 
     def atualizar_telemetria_comp(self, dados, d1, d2):
+        """ Atualiza a interface com os dados de comparação entre dois pilotos. """
         self.btn_comp.setEnabled(True)
         self.comp_status.setText(f"Comparação carregada. {d1}: {dados['lap_time_1']}s | {d2}: {dados['lap_time_2']}s")
         self.comp_status.setStyleSheet("color: #2ecc71;")
