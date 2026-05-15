@@ -66,11 +66,14 @@ def obter_resumo_corrida(ano: int, gp: str):
             if drv_laps.empty:
                 continue
                 
-            # Extração de Posições (usando float para evitar erros de tipos do Pandas, depois convertendo para int)
+            # Extração de Posições 
             try:
-                grid_pos = int(float(session.results.loc[session.results['Abbreviation'] == drv, 'GridPosition'].values[0]))
-                final_pos = int(float(session.results.loc[session.results['Abbreviation'] == drv, 'Position'].values[0]))
-            except ValueError:
+                row = session.results[session.results['Abbreviation'] == drv]
+                if row.empty:
+                    continue
+                grid_pos = int(float(row['GridPosition'].values[0]))
+                final_pos = int(float(row['Position'].values[0]))
+            except (ValueError, IndexError, KeyError):
                 # Pilotos que não largaram ou não classificaram corretamente
                 continue
 
@@ -80,8 +83,12 @@ def obter_resumo_corrida(ano: int, gp: str):
                 composto = group['Compound'].iloc[0]
                 voltas_stint = len(group)
                 if pd.notna(composto): # Ignorar stints inválidos
+                    try:
+                        stint_int = int(np.asarray(stint).astype(float))
+                    except (ValueError, TypeError):
+                        continue
                     stints.append({
-                        "stint": int(stint),
+                        "stint": stint_int,
                         "composto": str(composto),
                         "voltas": int(voltas_stint)
                     })
