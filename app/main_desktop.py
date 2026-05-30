@@ -584,7 +584,7 @@ class PitWallApp(QMainWindow):
             color: #a1a1aa; 
             padding: 18px 24px; 
             font-weight: 600; 
-            font-size: 14px; 
+            font-size: 18px; 
             border: none;
             border-bottom: 3px solid transparent; 
             margin: 0px; 
@@ -610,10 +610,10 @@ class PitWallApp(QMainWindow):
             background: #1a1a1a; 
             color: #71717a;
             padding: 10px 24px;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             border: none;
-            margin-right: 5px;
+            margin-right: 8px;
             border-radius: 4px;
             margin-top: 10px;
         }
