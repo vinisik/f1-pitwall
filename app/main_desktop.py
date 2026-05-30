@@ -423,7 +423,7 @@ class PitWallApp(QMainWindow):
     # PREVISÃO E ESTRATÉGIA
     def iniciar_previsao_futura(self):
         self.ui_prediction.btn_predict.setEnabled(False)
-        self.ui_prediction.fut_status.setText("Gerando milhares de permutações...")
+        self.ui_prediction.fut_status.setText("Gerando permutações...")
         self.ui_prediction.fut_status.setStyleSheet("color: #00aeef;")
         
         gp = self.ui_prediction.fut_gp.text()
@@ -442,6 +442,8 @@ class PitWallApp(QMainWindow):
 
         classificacao = dados["classificacao"] 
         voltas = dados["laps"]
+        sc_start = dados.get("sc_start")
+        sc_duration = dados.get("sc_duration")
         
         podio = [item["driver"] for item in classificacao[:3]]
         texto_podio = f"PREVISÃO DO PÓDIO: 1º {podio[0]}  |  2º {podio[1]}  |  3º {podio[2]}"
@@ -460,12 +462,39 @@ class PitWallApp(QMainWindow):
         for spine in ax.spines.values(): spine.set_edgecolor('#454548')
         ax.grid(color='#454548', linestyle='--', linewidth=0.5)
 
+        # Faixa amarela sinalizando entrada do Safety Car
+        if sc_start is not None and sc_duration is not None:
+            ax.axvspan(sc_start, sc_start + sc_duration, color='#e2d014', alpha=0.15)
+            ax.text(sc_start + (sc_duration / 2), ax.get_ylim()[0] + 5, 'SAFETY CAR', 
+                    color='#e2d014', fontsize=12, weight='bold', ha='center', va='bottom', rotation=90)
+
         cores = ['#00aeef', '#ff8800', '#e10600', '#00ffaa', '#cccccc', '#ff00ff', '#ffff00']
         
         for i, item in enumerate(classificacao):
             driver = item["driver"]
             pace = item["pace"]
-            ax.plot(voltas, pace, color=cores[i%len(cores)], linewidth=2, label=f"{driver}")
+            cor_linha = cores[i%len(cores)]
+            
+            ax.plot(voltas, pace, color=cor_linha, linewidth=2, label=f"{driver}")
+            
+            # Label de PitStops
+            for pit_lap in item.get("pit_laps", []):
+                if pit_lap < len(pace) and not np.isnan(pace[pit_lap]):
+                    ax.annotate('PIT', 
+                                xy=(voltas[pit_lap], pace[pit_lap]), 
+                                xytext=(0, 10), textcoords="offset points", 
+                                ha='center', color=cor_linha, fontsize=8, weight='bold')
+
+            # Label de DNF na última volta válida
+            dnf_lap = item.get("dnf_lap")
+            if dnf_lap is not None and dnf_lap < len(pace):
+                volta_anterior = dnf_lap - 1
+                if volta_anterior >= 0 and not np.isnan(pace[volta_anterior]):
+                    ax.annotate('DNF', 
+                                xy=(voltas[volta_anterior], pace[volta_anterior]), 
+                                xytext=(0, 15), textcoords="offset points", 
+                                ha='center', color='#ff1e15', fontsize=10, weight='bold',
+                                arrowprops=dict(arrowstyle="->", color='#ff1e15'))
 
         ax.set_title(f"Evolução de Ritmo Prevista - GP de {dados['gp']}", color='#f5f5f5', pad=10)
         ax.set_xlabel("Voltas", color='#aaaaaa')

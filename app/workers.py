@@ -172,12 +172,8 @@ class FuturePredictionWorker(QThread):
     def run(self):
         try:
             ano_atual = datetime.datetime.now().year
-            
-            # Busca o tempo de volta histórico da pista 
             inteligencia_pista = obter_comportamento_historico_pista(ano_atual, self.gp)
             base_pace_circuito = inteligencia_pista.get('BASE_PACE', 80.0)
-            
-            # Busca o ranking atual dos pilotos para criar uma hierarquia de performance
             hierarquia_atual = obter_hierarquia_atual(ano_atual)
             
             if not hierarquia_atual:
@@ -185,7 +181,6 @@ class FuturePredictionWorker(QThread):
             
             laps_to_simulate = self.laps if self.laps > 0 else inteligencia_pista['TOTAL_LAPS']
             voltas = np.arange(1, laps_to_simulate + 1)
-            
             resultados = {}
             
             try:
@@ -198,56 +193,75 @@ class FuturePredictionWorker(QThread):
             except Exception:
                 curva_degradacao = voltas * 0.05
             
+            # Tratamento de Safety Car
             impacto_safety_car = np.zeros(laps_to_simulate)
+            sc_start = None
+            sc_duration = None
+            
             if random.random() < self.weather_chaos:
                 sc_start = random.randint(10, laps_to_simulate - 15)
                 sc_duration = random.randint(3, 6)
                 impacto_safety_car[sc_start:sc_start+sc_duration] = 20.0 
             
-            # Construção Estocástica 
             for driver, delta in hierarquia_atual.items():
-                
                 fator_setup = np.random.normal(0, 0.35) 
                 base_pace_piloto = base_pace_circuito + delta + fator_setup
                 
                 lap_volatility = np.random.normal(0, 0.45, laps_to_simulate)
                 pace = base_pace_piloto + curva_degradacao + lap_volatility + impacto_safety_car
                 
+                # Rasteio de eventos aleatórios
+                pit_laps = []
+                erro_laps = []
+                dnf_lap_num = None
+                
                 pit_lap = int(laps_to_simulate / 2) + random.randint(-6, 6) 
                 if pit_lap < laps_to_simulate:
                     tempo_pit = np.random.normal(22.0, 2.0)
                     pace[pit_lap] += tempo_pit
+                    pit_laps.append(pit_lap)
                 
                 for _ in range(random.randint(0, 2)):
                     if random.random() < 0.25: 
                         erro_lap = random.randint(1, laps_to_simulate - 1)
                         pace[erro_lap] += random.uniform(2.0, 6.0) 
+                        erro_laps.append(erro_lap)
                 
-                # Lógica de DNF baseada no caos climático e na imprevisibilidade da corrida
                 is_dnf = False
                 chance_dnf = 0.02 + (self.weather_chaos * 0.08)
                 if random.random() < chance_dnf:
                     dnf_lap = random.randint(5, laps_to_simulate - 5)
-                    pace[dnf_lap:] = np.nan # Marca o restante das voltas como nulas para indicar que o piloto não completou a corrida
+                    pace[dnf_lap:] = np.nan 
                     is_dnf = True
+                    dnf_lap_num = dnf_lap
                 
-                # Em caso de DNF, o tempo total vira infinito para ele cair para a última posição.
                 total_time = np.nansum(pace) if not is_dnf else float('inf')
                 
-                resultados[driver] = {"total_time": total_time, "pace": pace.tolist()}
+                resultados[driver] = {
+                    "total_time": total_time, 
+                    "pace": pace.tolist(),
+                    "pit_laps": pit_laps,
+                    "erro_laps": erro_laps,
+                    "dnf_lap": dnf_lap_num
+                }
             
             classificacao_lista = []
             for driver, info in sorted(resultados.items(), key=lambda item: item[1]["total_time"]):
                 classificacao_lista.append({
                     "driver": driver,
                     "total_time": info["total_time"],
-                    "pace": info["pace"]
+                    "pace": info["pace"],
+                    "pit_laps": info["pit_laps"],
+                    "erro_laps": info["erro_laps"],
+                    "dnf_lap": info["dnf_lap"]
                 })
             
             dados = {
                 "gp": self.gp,
                 "laps": voltas.tolist(),
-                "classificacao": classificacao_lista
+                "classificacao": classificacao_lista,
+                "sc_start": sc_start,
+                "sc_duration": sc_duration
             }
             
             self.success.emit(dados)
