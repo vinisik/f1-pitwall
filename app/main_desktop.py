@@ -688,7 +688,6 @@ class PitWallApp(QMainWindow):
             font-weight: 600; 
             font-size: 18px; 
             border: none;
-            border-bottom: 3px solid transparent; 
             margin: 0px; 
         }
         QTabWidget#MainTabs > QTabBar::tab:selected { 
@@ -697,6 +696,7 @@ class PitWallApp(QMainWindow):
         }
         QTabWidget#MainTabs > QTabBar::tab:hover:!selected { 
             color: #ffffff; 
+            border-bottom: 3px solid #ffffff;
             background-color: #27272a;
         }
 
@@ -753,7 +753,7 @@ class PitWallApp(QMainWindow):
             font-weight: 600; 
             font-size: 13px; 
         }
-        QPushButton:hover { background-color: #27272a; border-color: #3f3f46; }
+        QPushButton:hover { background-color: #27272a; border-color: #3f3f46;  }
         QPushButton:pressed { background-color: #121212; }
         QPushButton:disabled { background-color: #121212; color: #3f3f46; border: 1px dashed #27272a; }
 
