@@ -33,18 +33,27 @@ class PitWallApp(QMainWindow):
         self.apply_theme()
 
     def setup_ui(self):
+        # Container Central e Layout
         central_widget = QWidget()
+        central_widget.setObjectName("central_widget")
         self.setCentralWidget(central_widget)
+        
         main_layout = QVBoxLayout(central_widget)
-        main_layout.setContentsMargins(15, 15, 15, 15)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
         self.tabs = QTabWidget()
+        self.tabs.setObjectName("MainTabs")
         main_layout.addWidget(self.tabs)
 
-        # Instanciando as Views 
         self.ui_summary = SummaryTabUI()
+        self.ui_summary.setObjectName("app_tab")
+        
         self.ui_telemetry = TelemetryTabUI()
+        self.ui_telemetry.setObjectName("app_tab")
+        
         self.ui_prediction = StrategyPredictionUI()
+        self.ui_prediction.setObjectName("app_tab")
 
         self.tabs.addTab(self.ui_summary, "Resumo da Corrida")
         self.tabs.addTab(self.ui_telemetry, "Análise de Telemetria")
@@ -443,9 +452,9 @@ class PitWallApp(QMainWindow):
             self.oracle_canvas.deleteLater()
             plt.close('all')
 
-        fig, ax = plt.subplots(figsize=(10, 5), facecolor='#2d2d30', dpi=100)
-        fig.patch.set_facecolor('#1e1e1e')
-        ax.set_facecolor('#1e1e1e')
+        fig, ax = plt.subplots(figsize=(10, 5), facecolor='#121212', dpi=100)
+        fig.patch.set_facecolor('#121212')
+        ax.set_facecolor('#121212')
 
         ax.tick_params(colors='#aaaaaa')
         for spine in ax.spines.values(): spine.set_edgecolor('#454548')
@@ -461,7 +470,7 @@ class PitWallApp(QMainWindow):
         ax.set_title(f"Evolução de Ritmo Prevista - GP de {dados['gp']}", color='#f5f5f5', pad=10)
         ax.set_xlabel("Voltas", color='#aaaaaa')
         ax.set_ylabel("Tempo de Volta Projetado (s)", color='#aaaaaa')
-        ax.legend(facecolor='#2d2d30', edgecolor='#454548', labelcolor='white')
+        ax.legend(facecolor='#121212', edgecolor='#454548', labelcolor='white')
         
         fig.tight_layout()
 
@@ -502,13 +511,13 @@ class PitWallApp(QMainWindow):
         vida_b = dados['vida_b']
         delta = dados['delta']
 
-        fig = plt.figure(figsize=(10, 8), facecolor='#2d2d30', dpi=100)
+        fig = plt.figure(figsize=(10, 8), facecolor='#121212', dpi=100)
         gs = GridSpec(3, 1, height_ratios=[2, 1, 1], hspace=0.35)
-        fig.patch.set_facecolor('#1e1e1e')
+        fig.patch.set_facecolor('#121212')
 
-        ax_pace = fig.add_subplot(gs[0], facecolor='#1e1e1e')
-        ax_delta = fig.add_subplot(gs[1], facecolor='#1e1e1e', sharex=ax_pace)
-        ax_life = fig.add_subplot(gs[2], facecolor='#1e1e1e', sharex=ax_pace)
+        ax_pace = fig.add_subplot(gs[0], facecolor='#121212')
+        ax_delta = fig.add_subplot(gs[1], facecolor='#121212', sharex=ax_pace)
+        ax_life = fig.add_subplot(gs[2], facecolor='#121212', sharex=ax_pace)
 
         for ax in [ax_pace, ax_delta, ax_life]:
             ax.tick_params(colors='#aaaaaa', labelsize=8)
@@ -520,7 +529,7 @@ class PitWallApp(QMainWindow):
         ax_pace.set_ylim(75, 85) 
         ax_pace.set_title("Projeção de Ritmo de Corrida (Ignorando tempo de Pit Lane)", color='#f5f5f5', pad=10)
         ax_pace.set_ylabel("Tempo de Volta (s)", color='#aaaaaa', fontsize=9)
-        ax_pace.legend(facecolor='#2d2d30', edgecolor='#454548', labelcolor='white', fontsize=8)
+        ax_pace.legend(facecolor='#121212', edgecolor='#454548', labelcolor='white', fontsize=8)
 
         ax_delta.fill_between(voltas, 0, delta, where=(np.array(delta) >= 0).tolist(), color='#e10600', alpha=0.5, label="B à frente")
         ax_delta.fill_between(voltas, 0, delta, where=(np.array(delta) < 0).tolist(), color='#ffffff', alpha=0.5, label="A à frente")
@@ -544,26 +553,127 @@ class PitWallApp(QMainWindow):
 
     def apply_theme(self):
         qss = """
-        QMainWindow, QWidget { background-color: #1e1e1e; color: #f5f5f5; font-family: 'Segoe UI', Arial, sans-serif; }
-        
-        QTabWidget::pane { border: 1px solid #454548; background: #1e1e1e; border-radius: 6px; }
-        QTabBar::tab { background: #2d2d30; color: #aaaaaa; padding: 12px 25px; border: 1px solid #454548; font-weight: bold; font-size: 13px; }
-        QTabBar::tab:selected { background: #1e1e1e; color: #ffffff; border-bottom: 3px solid #aaaaaa; }
-        QTabBar::tab:hover:!selected { background: #454548; color: #e0e0e0; }
+        /* Fundo */
+        QMainWindow, QWidget#central_widget { 
+            background-color: #1a1a1a; 
+            color: #e4e4e7; 
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif; 
+        }
 
-        QLineEdit { background-color: #2d2d30; color: #f5f5f5; border: 1px solid #454548; border-radius: 6px; padding: 8px; font-weight: bold; }
-        QLineEdit:focus { border: 1px solid #888888; }
-
-        QPushButton { background-color: #555555; color: #ffffff; border: none; border-radius: 6px; padding: 8px 18px; font-weight: bold; font-size: 13px; }
-        QPushButton:hover { background-color: #666666; }
-        QPushButton:disabled { background-color: #333333; color: #777777; }
+        QWidget#app_tab {
+            background-color: #121212; 
+        }
         
-        QTableWidget { background-color: #2d2d30; color: #f5f5f5; gridline-color: #454548; border: 1px solid #454548; border-radius: 6px; outline: 0; }
-        QHeaderView::section { background-color: #1e1e1e; color: #aaaaaa; padding: 8px; border: 1px solid #454548; font-weight: bold; font-size: 12px; }
-        QTableWidget::item { padding: 5px; }
-        QTableWidget::item:selected { background-color: #454548; }
-        QScrollBar:vertical { background: #1e1e1e; width: 10px; }
-        QScrollBar::handle:vertical { background: #454548; border-radius: 5px; }
+        QTabWidget#MainTabs::pane { 
+            border: none; 
+            border-top: 1px solid #27272a; 
+            background-color: #121212; 
+        }
+
+        QFrame {
+            background-color: transparent;
+            border: none;
+        }
+
+        /* Barra de Navegação (Header) */
+        QTabWidget#MainTabs > QTabBar {
+            background-color: transparent; 
+        }
+        QTabWidget#MainTabs > QTabBar::tab { 
+            background: transparent; 
+            color: #a1a1aa; 
+            padding: 18px 24px; 
+            font-weight: 600; 
+            font-size: 14px; 
+            border: none;
+            border-bottom: 3px solid transparent; 
+            margin: 0px; 
+        }
+        QTabWidget#MainTabs > QTabBar::tab:selected { 
+            color: #ffffff; 
+            border-bottom: 3px solid #e10600; 
+        }
+        QTabWidget#MainTabs > QTabBar::tab:hover:!selected { 
+            color: #ffffff; 
+            background-color: #27272a;
+        }
+
+        /* Sub-Abas */
+        QTabWidget#subtabs::pane {
+            border: none;
+            padding-top: 10px;
+        }
+        QTabWidget#subtabs > QTabBar {
+            background-color: transparent; 
+        }
+        QTabWidget#subtabs > QTabBar::tab {
+            background: #1a1a1a; 
+            color: #71717a;
+            padding: 18px 24px;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            margin-right: 5px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        QTabWidget#subtabs > QTabBar::tab:selected {
+            background-color: #27272a; 
+            border-bottom: 3px solid #e10600; 
+            color: #ffffff;
+        }
+        QTabWidget#subtabs > QTabBar::tab:hover:!selected {
+            color: #e4e4e7;
+            background-color: #27272a;
+        }
+
+        /* Formulários */
+        QLineEdit { 
+            background-color: #1a1a1a; 
+            color: #ffffff; 
+            border: 1px solid #27272a; 
+            border-radius: 4px; 
+            padding: 8px 14px; 
+            font-weight: 500; 
+            font-size: 13px;
+        }
+        QLineEdit:focus { 
+            border: 1px solid #00aeef; 
+            background-color: #27272a;
+        }
+
+        QPushButton { 
+            background-color: #1a1a1a; 
+            color: #ffffff; 
+            border: 1px solid #27272a; 
+            border-radius: 4px; 
+            padding: 9px 20px; 
+            font-weight: 600; 
+            font-size: 13px; 
+        }
+        QPushButton:hover { background-color: #27272a; border-color: #3f3f46; }
+        QPushButton:pressed { background-color: #121212; }
+        QPushButton:disabled { background-color: #121212; color: #3f3f46; border: 1px dashed #27272a; }
+
+        QPushButton#btn_primary { background-color: #e10600; color: #ffffff; border: none; }
+        QPushButton#btn_primary:hover { background-color: #ff1e15; }
+        QPushButton#btn_primary:disabled { background-color: #551111; color: #aaaaaa; }
+
+        /* Tabelas */
+        QTableWidget { 
+            background-color: #1a1a1a; color: #e4e4e7; gridline-color: #27272a; 
+            border: none; outline: 0; font-size: 13px;
+        }
+        QTableWidget::item { padding: 8px; border-bottom: 1px solid #27272a; }
+        QTableWidget::item:selected { background-color: #27272a; color: #ffffff; }
+        QHeaderView::section { 
+            background-color: #121212; color: #a1a1aa; padding: 12px; border: none; 
+            border-bottom: 2px solid #27272a; font-weight: 700; font-size: 12px; text-transform: uppercase;
+        }
+        QLabel { color: #d4d4d8; font-size: 13px; font-weight: 500;}
+        QScrollBar:vertical { background: #121212; width: 10px; }
+        QScrollBar::handle:vertical { background: #27272a; border-radius: 5px; }
+        QScrollBar::handle:vertical:hover { background: #3f3f46; }
         """
         self.setStyleSheet(qss)
 

@@ -28,6 +28,7 @@ class SummaryTabUI(QWidget):
         self.sum_gp.setFixedWidth(150)
         
         self.btn_summary = QPushButton("Gerar Resumo Oficial")
+        self.btn_summary.setObjectName("btn_primary")
         self.btn_export_sum = QPushButton("Exportar Relatório")
         self.btn_export_sum.setStyleSheet("background-color: #454548; color: #ffffff;")
         self.sum_status = QLabel("")
@@ -54,6 +55,7 @@ class TelemetryTabUI(QWidget):
         super().__init__()
         layout = QVBoxLayout(self)
         self.subtabs_tel = QTabWidget()
+        self.subtabs_tel.setObjectName("subtabs")
         layout.addWidget(self.subtabs_tel)
         
         # Sub-abas
@@ -75,6 +77,7 @@ class TelemetryTabUI(QWidget):
         self.ind_d1 = QLineEdit("VER"); self.ind_d1.setFixedWidth(80)
         
         self.btn_ind = QPushButton("Analisar Piloto")
+        self.btn_ind.setObjectName("btn_primary")
         self.btn_export_tel = QPushButton("Exportar PDF")
         self.btn_export_tel.setStyleSheet("background-color: #454548; color: #ffffff;")
         self.ind_status = QLabel("")
@@ -103,6 +106,7 @@ class TelemetryTabUI(QWidget):
         self.comp_d2 = QLineEdit("NOR"); self.comp_d2.setFixedWidth(80); self.comp_d2.setPlaceholderText("Alvo 2")
         
         self.btn_comp = QPushButton("Comparar Pilotos")
+        self.btn_comp.setObjectName("btn_primary")
         self.comp_status = QLabel("")
 
         control_layout.addWidget(self.comp_year)
@@ -123,12 +127,13 @@ class StrategyPredictionUI(QWidget):
         super().__init__()
         layout = QVBoxLayout(self)
         self.subtabs_strategy = QTabWidget()
+        self.subtabs_strategy.setObjectName("subtabs") 
         layout.addWidget(self.subtabs_strategy)
         
         self.subtab_oracle = QWidget()
         self.subtab_race_control = QWidget()
         self.subtabs_strategy.addTab(self.subtab_oracle, "Prever Corrida Futura")
-        self.subtabs_strategy.addTab(self.subtab_race_control, "Race Control - Estratégia")
+        self.subtabs_strategy.addTab(self.subtab_race_control, "Simular Estratégia")
         
         self.setup_oracle()
         self.setup_race_control()
@@ -143,6 +148,7 @@ class StrategyPredictionUI(QWidget):
         self.fut_chaos = QLineEdit("0.2"); self.fut_chaos.setFixedWidth(80)
         
         self.btn_predict = QPushButton("Rodar Simulação")
+        self.btn_predict.setObjectName("btn_primary")
         self.fut_status = QLabel("")
 
         control_layout.addWidget(QLabel("GP Futuro:"))
@@ -157,13 +163,13 @@ class StrategyPredictionUI(QWidget):
         layout.addWidget(control_frame)
 
         self.oracle_podium = QLabel("Simule para ver o pódio previsto...")
-        self.oracle_podium.setStyleSheet("font-size: 18px; color: #e2d014; font-weight: bold; padding: 10px; background-color: #2d2d30; border-radius: 6px;")
+        self.oracle_podium.setStyleSheet("font-size: 18px; color: #e2d014; font-weight: bold; padding: 10px; background-color: #1a1a1a; border-radius: 6px;")
         self.oracle_podium.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.oracle_podium)
 
         self.oracle_chart_frame = QFrame()
         self.oracle_chart_layout = QVBoxLayout(self.oracle_chart_frame)
-        self.oracle_chart_frame.setStyleSheet("background-color: #2d2d30; border-radius: 8px;")
+        self.oracle_chart_frame.setStyleSheet("background-color: #1a1a1a; border-radius: 8px;")
         layout.addWidget(self.oracle_chart_frame, stretch=1)
 
     def setup_race_control(self):
@@ -171,11 +177,19 @@ class StrategyPredictionUI(QWidget):
         control_frame = QFrame()
         control_layout = QHBoxLayout(control_frame)
         
-        self.live_year = QLineEdit("2025"); self.live_year.setFixedWidth(80)
-        self.live_gp = QLineEdit("Brazil"); self.live_gp.setFixedWidth(150)
-        self.live_driver = QLineEdit("VER"); self.live_driver.setFixedWidth(80)
+        self.live_year = QLineEdit("2026") 
+        self.live_year.setFixedWidth(80)
+        self.live_gp = QLineEdit("Brazil")
+        self.live_gp.setFixedWidth(150)
+        self.live_driver = QLineEdit("VER")
+        self.live_driver.setFixedWidth(80)
         
-        self.btn_live = QPushButton("Calcular Estratégia")
+        self.btn_live = QPushButton("Gerar Estratégia")
+        self.btn_live.setObjectName("btn_primary")
+        
+        self.btn_export_est = QPushButton("Exportar PDF")
+        self.btn_export_est.setEnabled(False) 
+        
         self.live_status = QLabel("")
 
         control_layout.addWidget(QLabel("Ano:"))
@@ -185,6 +199,7 @@ class StrategyPredictionUI(QWidget):
         control_layout.addWidget(QLabel("Piloto:"))
         control_layout.addWidget(self.live_driver)
         control_layout.addWidget(self.btn_live)
+        control_layout.addWidget(self.btn_export_est) 
         control_layout.addWidget(self.live_status)
         control_layout.addStretch()
         layout.addWidget(control_frame)
@@ -203,5 +218,5 @@ class StrategyPredictionUI(QWidget):
 
         self.live_chart_frame = QFrame()
         self.live_chart_layout = QVBoxLayout(self.live_chart_frame)
-        self.live_chart_frame.setStyleSheet("background-color: #2d2d30; border-radius: 8px;")
+        self.live_chart_frame.setStyleSheet("background-color: #1a1a1a; border-radius: 8px;")
         layout.addWidget(self.live_chart_frame, stretch=1)
