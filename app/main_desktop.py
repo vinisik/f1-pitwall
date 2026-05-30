@@ -219,15 +219,15 @@ class PitWallApp(QMainWindow):
         x_map = np.array([get_val(r, f'X_{d1}') for r in valid_rows])
         y_map = np.array([get_val(r, f'Y_{d1}') for r in valid_rows])
 
-        fig = plt.figure(figsize=(10, 10), facecolor='#2d2d30', dpi=100)
+        fig = plt.figure(figsize=(10, 10), facecolor='#1a1a1a', dpi=100)
         gs = GridSpec(5, 1, height_ratios=[3, 1.5, 1, 1, 1], hspace=0.3)
-        fig.patch.set_facecolor('#2d2d30')
+        fig.patch.set_facecolor('#1a1a1a')
 
-        ax_map = fig.add_subplot(gs[0], facecolor='#2d2d30')
-        ax_spd = fig.add_subplot(gs[1], facecolor='#2d2d30')
-        ax_thr = fig.add_subplot(gs[2], facecolor='#2d2d30', sharex=ax_spd)
-        ax_brk = fig.add_subplot(gs[3], facecolor='#2d2d30', sharex=ax_spd)
-        ax_ger = fig.add_subplot(gs[4], facecolor='#2d2d30', sharex=ax_spd)
+        ax_map = fig.add_subplot(gs[0], facecolor='#1a1a1a')
+        ax_spd = fig.add_subplot(gs[1], facecolor='#1a1a1a')
+        ax_thr = fig.add_subplot(gs[2], facecolor='#1a1a1a', sharex=ax_spd)
+        ax_brk = fig.add_subplot(gs[3], facecolor='#1a1a1a', sharex=ax_spd)
+        ax_ger = fig.add_subplot(gs[4], facecolor='#1a1a1a', sharex=ax_spd)
         telemetry_axes = [ax_spd, ax_thr, ax_brk, ax_ger]
 
         for ax in telemetry_axes:
@@ -244,7 +244,7 @@ class PitWallApp(QMainWindow):
 
         ax_spd.plot(dist, s1, color=self.color_d1, linewidth=1.5, label=f"Velocidade ({d1})")
         ax_spd.set_ylabel("Speed", color='#94a3b8', fontsize=9)
-        ax_spd.legend(loc='upper right', facecolor='#1e293b', edgecolor='#334155', labelcolor='white', fontsize=8)
+        ax_spd.legend(loc='upper right', facecolor='#1a1a1a', edgecolor='#334155', labelcolor='white', fontsize=8)
 
         ax_thr.plot(dist, thr1, color=self.color_d1, drawstyle='steps-post', linewidth=1.5)
         ax_thr.set_ylabel("Throttle", color='#94a3b8', fontsize=9)
@@ -342,15 +342,15 @@ class PitWallApp(QMainWindow):
         x_map = np.array([r.get(f'X_{d1}', 0) for r in valid_rows])
         y_map = np.array([r.get(f'Y_{d1}', 0) for r in valid_rows])
 
-        fig = plt.figure(figsize=(10, 10), facecolor='#1e293b', dpi=100)
+        fig = plt.figure(figsize=(10, 10), facecolor='#1a1a1a', dpi=100)
         gs = GridSpec(5, 1, height_ratios=[3, 1.5, 1, 1, 1], hspace=0.3)
-        fig.patch.set_facecolor('#0f172a')
+        fig.patch.set_facecolor('#1a1a1a')
 
-        ax_map = fig.add_subplot(gs[0], facecolor='#0f172a')
-        ax_spd = fig.add_subplot(gs[1], facecolor='#0f172a')
-        ax_thr = fig.add_subplot(gs[2], facecolor='#0f172a', sharex=ax_spd)
-        ax_brk = fig.add_subplot(gs[3], facecolor='#0f172a', sharex=ax_spd)
-        ax_ger = fig.add_subplot(gs[4], facecolor='#0f172a', sharex=ax_spd)
+        ax_map = fig.add_subplot(gs[0], facecolor='#1a1a1a')
+        ax_spd = fig.add_subplot(gs[1], facecolor='#1a1a1a')
+        ax_thr = fig.add_subplot(gs[2], facecolor='#1a1a1a', sharex=ax_spd)
+        ax_brk = fig.add_subplot(gs[3], facecolor='#1a1a1a', sharex=ax_spd)
+        ax_ger = fig.add_subplot(gs[4], facecolor='#1a1a1a', sharex=ax_spd)
 
         telemetry_axes = [ax_spd, ax_thr, ax_brk, ax_ger]
 
@@ -371,7 +371,7 @@ class PitWallApp(QMainWindow):
         ax_spd.plot(dist, s1, color=self.color_d1, linewidth=1.5, label=d1)
         ax_spd.plot(dist, s2, color=self.color_d2, linewidth=1.5, label=d2)
         ax_spd.set_ylabel("Speed", color='#94a3b8', fontsize=9)
-        ax_spd.legend(loc='upper right', facecolor='#1e293b', edgecolor='#334155', labelcolor='white', fontsize=8)
+        ax_spd.legend(loc='upper right', facecolor='#1a1a1a', edgecolor='#334155', labelcolor='white', fontsize=8)
 
         ax_thr.plot(dist, thr1, color=self.color_d1, drawstyle='steps-post', linewidth=1.5)
         ax_thr.plot(dist, thr2, color=self.color_d2, drawstyle='steps-post', linewidth=1.5)
@@ -452,9 +452,9 @@ class PitWallApp(QMainWindow):
             self.oracle_canvas.deleteLater()
             plt.close('all')
 
-        fig, ax = plt.subplots(figsize=(10, 5), facecolor='#121212', dpi=100)
-        fig.patch.set_facecolor('#121212')
-        ax.set_facecolor('#121212')
+        fig, ax = plt.subplots(figsize=(10, 5), facecolor='#1a1a1a', dpi=100)
+        fig.patch.set_facecolor('#1a1a1a')
+        ax.set_facecolor('#1a1a1a')
 
         ax.tick_params(colors='#aaaaaa')
         for spine in ax.spines.values(): spine.set_edgecolor('#454548')
@@ -470,7 +470,7 @@ class PitWallApp(QMainWindow):
         ax.set_title(f"Evolução de Ritmo Prevista - GP de {dados['gp']}", color='#f5f5f5', pad=10)
         ax.set_xlabel("Voltas", color='#aaaaaa')
         ax.set_ylabel("Tempo de Volta Projetado (s)", color='#aaaaaa')
-        ax.legend(facecolor='#121212', edgecolor='#454548', labelcolor='white')
+        ax.legend(facecolor='#1a1a1a', edgecolor='#454548', labelcolor='white')
         
         fig.tight_layout()
 
@@ -511,13 +511,13 @@ class PitWallApp(QMainWindow):
         vida_b = dados['vida_b']
         delta = dados['delta']
 
-        fig = plt.figure(figsize=(10, 8), facecolor='#121212', dpi=100)
+        fig = plt.figure(figsize=(10, 8), facecolor='#1a1a1a', dpi=100)
         gs = GridSpec(3, 1, height_ratios=[2, 1, 1], hspace=0.35)
-        fig.patch.set_facecolor('#121212')
+        fig.patch.set_facecolor('#1a1a1a')
 
-        ax_pace = fig.add_subplot(gs[0], facecolor='#121212')
-        ax_delta = fig.add_subplot(gs[1], facecolor='#121212', sharex=ax_pace)
-        ax_life = fig.add_subplot(gs[2], facecolor='#121212', sharex=ax_pace)
+        ax_pace = fig.add_subplot(gs[0], facecolor='#1a1a1a')
+        ax_delta = fig.add_subplot(gs[1], facecolor='#1a1a1a', sharex=ax_pace)
+        ax_life = fig.add_subplot(gs[2], facecolor='#1a1a1a', sharex=ax_pace)
 
         for ax in [ax_pace, ax_delta, ax_life]:
             ax.tick_params(colors='#aaaaaa', labelsize=8)
@@ -529,7 +529,7 @@ class PitWallApp(QMainWindow):
         ax_pace.set_ylim(75, 85) 
         ax_pace.set_title("Projeção de Ritmo de Corrida (Ignorando tempo de Pit Lane)", color='#f5f5f5', pad=10)
         ax_pace.set_ylabel("Tempo de Volta (s)", color='#aaaaaa', fontsize=9)
-        ax_pace.legend(facecolor='#121212', edgecolor='#454548', labelcolor='white', fontsize=8)
+        ax_pace.legend(facecolor='#1a1a1a', edgecolor='#454548', labelcolor='white', fontsize=8)
 
         ax_delta.fill_between(voltas, 0, delta, where=(np.array(delta) >= 0).tolist(), color='#e10600', alpha=0.5, label="B à frente")
         ax_delta.fill_between(voltas, 0, delta, where=(np.array(delta) < 0).tolist(), color='#ffffff', alpha=0.5, label="A à frente")
@@ -609,7 +609,7 @@ class PitWallApp(QMainWindow):
         QTabWidget#subtabs > QTabBar::tab {
             background: #1a1a1a; 
             color: #71717a;
-            padding: 18px 24px;
+            padding: 10px 24px;
             font-size: 15px;
             font-weight: 600;
             border: none;
@@ -676,6 +676,7 @@ class PitWallApp(QMainWindow):
         QScrollBar::handle:vertical:hover { background: #3f3f46; }
         """
         self.setStyleSheet(qss)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
