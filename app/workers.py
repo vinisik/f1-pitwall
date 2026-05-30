@@ -173,14 +173,13 @@ class FuturePredictionWorker(QThread):
         try:
             ano_atual = datetime.datetime.now().year
             
-            # Busca o tempo de volta histórico da pista para criar uma baseline realista
+            # Busca o tempo de volta histórico da pista 
             inteligencia_pista = obter_comportamento_historico_pista(ano_atual, self.gp)
             base_pace_circuito = inteligencia_pista.get('BASE_PACE', 80.0)
             
-            # Busca a performance real dos carros na última corrida 
+            # Busca o ranking atual dos pilotos para criar uma hierarquia de performance
             hierarquia_atual = obter_hierarquia_atual(ano_atual)
             
-            # Fallback de segurança matemática caso a API falhe
             if not hierarquia_atual:
                 hierarquia_atual = {"VER": -0.2, "NOR": -0.15, "LEC": 0.05, "HAM": 0.15, "RUS": 0.25, "ALO": 0.60}
             
@@ -205,24 +204,36 @@ class FuturePredictionWorker(QThread):
                 sc_duration = random.randint(3, 6)
                 impacto_safety_car[sc_start:sc_start+sc_duration] = 20.0 
             
-            # Construção Estocástica do Grid
+            # Construção Estocástica 
             for driver, delta in hierarquia_atual.items():
-                # O ritmo base do piloto = Ritmo Médio da Pista + Delta Real de Performance 
-                base_pace_piloto = base_pace_circuito + delta
                 
-                lap_volatility = np.random.normal(0, 0.3, laps_to_simulate)
+                fator_setup = np.random.normal(0, 0.35) 
+                base_pace_piloto = base_pace_circuito + delta + fator_setup
+                
+                lap_volatility = np.random.normal(0, 0.45, laps_to_simulate)
                 pace = base_pace_piloto + curva_degradacao + lap_volatility + impacto_safety_car
                 
-                pit_lap = int(laps_to_simulate / 2) + random.randint(-4, 4) 
+                pit_lap = int(laps_to_simulate / 2) + random.randint(-6, 6) 
                 if pit_lap < laps_to_simulate:
-                    tempo_pit = np.random.normal(22.0, 1.5)
+                    tempo_pit = np.random.normal(22.0, 2.0)
                     pace[pit_lap] += tempo_pit
                 
-                if random.random() < 0.15:
-                    erro_lap = random.randint(1, laps_to_simulate - 1)
-                    pace[erro_lap] += random.uniform(2.5, 6.0) 
+                for _ in range(random.randint(0, 2)):
+                    if random.random() < 0.25: 
+                        erro_lap = random.randint(1, laps_to_simulate - 1)
+                        pace[erro_lap] += random.uniform(2.0, 6.0) 
                 
-                total_time = np.sum(pace)
+                # Lógica de DNF baseada no caos climático e na imprevisibilidade da corrida
+                is_dnf = False
+                chance_dnf = 0.02 + (self.weather_chaos * 0.08)
+                if random.random() < chance_dnf:
+                    dnf_lap = random.randint(5, laps_to_simulate - 5)
+                    pace[dnf_lap:] = np.nan # Marca o restante das voltas como nulas para indicar que o piloto não completou a corrida
+                    is_dnf = True
+                
+                # Em caso de DNF, o tempo total vira infinito para ele cair para a última posição.
+                total_time = np.nansum(pace) if not is_dnf else float('inf')
+                
                 resultados[driver] = {"total_time": total_time, "pace": pace.tolist()}
             
             classificacao_lista = []
