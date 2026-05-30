@@ -162,6 +162,7 @@ class SummaryWorker(QThread):
 class FuturePredictionWorker(QThread):
     success = Signal(dict)
     error = Signal(str)
+    log_msg = Signal(str) 
 
     def __init__(self, gp, laps, weather_chaos):
         super().__init__()
@@ -171,18 +172,26 @@ class FuturePredictionWorker(QThread):
 
     def run(self):
         try:
+            self.log_msg.emit("[SISTEMA] Iniciando Kernel de Simulação Monte Carlo...")
             ano_atual = datetime.datetime.now().year
+            
+            self.log_msg.emit(f"[API] Conectando ao banco de dados para o GP: {self.gp}...")
             inteligencia_pista = obter_comportamento_historico_pista(ano_atual, self.gp)
             base_pace_circuito = inteligencia_pista.get('BASE_PACE', 80.0)
+            self.log_msg.emit(f"[CALC] Pace Base Histórico estabelecido em {base_pace_circuito:.3f}s")
+            
+            self.log_msg.emit("[API] Extraindo hierarquia e deltas da última corrida...")
             hierarquia_atual = obter_hierarquia_atual(ano_atual)
             
             if not hierarquia_atual:
+                self.log_msg.emit("[AVISO] Falha na API. Usando Hierarquia de Fallback.")
                 hierarquia_atual = {"VER": -0.2, "NOR": -0.15, "LEC": 0.05, "HAM": 0.15, "RUS": 0.25, "ALO": 0.60}
             
             laps_to_simulate = self.laps if self.laps > 0 else inteligencia_pista['TOTAL_LAPS']
             voltas = np.arange(1, laps_to_simulate + 1)
             resultados = {}
             
+            self.log_msg.emit("[ML] Invocando Regressão para curva de degradação...")
             try:
                 ia_pace_curve = prever_degradacao_pneu(voltas.tolist(), 'MEDIUM')
                 if isinstance(ia_pace_curve, dict):
@@ -190,19 +199,25 @@ class FuturePredictionWorker(QThread):
                 else:
                     ia_pace_values = list(ia_pace_curve)
                 curva_degradacao = np.array(ia_pace_values) - ia_pace_values[0]
+                self.log_msg.emit("[ML] Curva de degradação térmica calculada com sucesso.")
             except Exception:
                 curva_degradacao = voltas * 0.05
+                self.log_msg.emit("[AVISO] Fallback de degradação linear aplicado.")
             
-            # Tratamento de Safety Car
             impacto_safety_car = np.zeros(laps_to_simulate)
             sc_start = None
             sc_duration = None
             
+            self.log_msg.emit(f"[MONTE CARLO] Sorteando probabilidade de Caos Climático/SC: {self.weather_chaos*100}%")
             if random.random() < self.weather_chaos:
                 sc_start = random.randint(10, laps_to_simulate - 15)
                 sc_duration = random.randint(3, 6)
                 impacto_safety_car[sc_start:sc_start+sc_duration] = 20.0 
+                self.log_msg.emit(f"[ALERTA GERAL] SAFETY CAR previsto da volta {sc_start} até {sc_start+sc_duration}!")
+            else:
+                self.log_msg.emit("[STATUS] Bandeira verde cravada. Sem SC nesta simulação.")
             
+            self.log_msg.emit("[MONTE CARLO] Computando matrizes de variância de pilotos...")
             for driver, delta in hierarquia_atual.items():
                 fator_setup = np.random.normal(0, 0.35) 
                 base_pace_piloto = base_pace_circuito + delta + fator_setup
@@ -210,7 +225,6 @@ class FuturePredictionWorker(QThread):
                 lap_volatility = np.random.normal(0, 0.45, laps_to_simulate)
                 pace = base_pace_piloto + curva_degradacao + lap_volatility + impacto_safety_car
                 
-                # Rasteio de eventos aleatórios
                 pit_laps = []
                 erro_laps = []
                 dnf_lap_num = None
@@ -234,6 +248,7 @@ class FuturePredictionWorker(QThread):
                     pace[dnf_lap:] = np.nan 
                     is_dnf = True
                     dnf_lap_num = dnf_lap
+                    self.log_msg.emit(f"[FATAL] Piloto {driver} sofreu quebra terminal na volta {dnf_lap}. (DNF)")
                 
                 total_time = np.nansum(pace) if not is_dnf else float('inf')
                 
@@ -245,6 +260,7 @@ class FuturePredictionWorker(QThread):
                     "dnf_lap": dnf_lap_num
                 }
             
+            self.log_msg.emit("[SISTEMA] Permutações finalizadas. Consolidando posições...")
             classificacao_lista = []
             for driver, info in sorted(resultados.items(), key=lambda item: item[1]["total_time"]):
                 classificacao_lista.append({
@@ -264,6 +280,8 @@ class FuturePredictionWorker(QThread):
                 "sc_duration": sc_duration
             }
             
+            self.log_msg.emit("[SISTEMA] Processo concluído com sucesso. Plotando gráficos.")
             self.success.emit(dados)
         except Exception as e:
+            self.log_msg.emit(f"[ERRO CRÍTICO] {str(e)}")
             self.error.emit(f"Falha na previsão de Machine Learning: {str(e)}")

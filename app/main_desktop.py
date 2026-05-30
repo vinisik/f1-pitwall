@@ -1,7 +1,7 @@
 import os
 import sys
 import numpy as np
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QTabWidget, QTableWidgetItem, QLabel, QHBoxLayout
+from PySide6.QtWidgets import QApplication, QDialog, QMainWindow, QTextEdit, QWidget, QVBoxLayout, QTabWidget, QTableWidgetItem, QLabel, QHBoxLayout
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 import matplotlib.pyplot as plt
@@ -11,6 +11,34 @@ from app.ui.tabs import SummaryTabUI, TelemetryTabUI, StrategyPredictionUI, get_
 from app.workers import SingleTelemetryWorker, TelemetryWorker, StrategyWorker, SummaryWorker, FuturePredictionWorker
 from app.services.reports import gerar_pdf_estrategia, gerar_pdf_telemetria, gerar_pdf_resumo_corrida
 
+class TerminalDialog(QDialog):
+    def __init__(self, parent=None, title="Terminal de Engenharia"):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.resize(700, 450)
+        self.setStyleSheet("""
+            QDialog { background-color: #050505; border: 1px solid #27272a; }
+            QTextEdit { 
+                background-color: #050505; 
+                color: #2ecc71; 
+                font-family: 'Consolas', 'Courier New', monospace; 
+                font-size: 13px;
+                border: none;
+                padding: 10px;
+            }
+            QScrollBar:vertical { background: #050505; width: 10px; }
+            QScrollBar::handle:vertical { background: #27272a; border-radius: 5px; }
+        """)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.terminal = QTextEdit()
+        self.terminal.setReadOnly(True)
+        layout.addWidget(self.terminal)
+
+    def log(self, message):
+        self.terminal.append(f"> {message}")
+        scrollbar = self.terminal.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
 
 class PitWallApp(QMainWindow):
     def __init__(self):
@@ -68,14 +96,34 @@ class PitWallApp(QMainWindow):
         self.ui_summary.btn_summary.clicked.connect(self.iniciar_resumo)
         self.ui_summary.btn_export_sum.clicked.connect(self.exportar_pdf_resumo)
         
-        # Sinais da aba de Telemetria
         self.ui_telemetry.btn_ind.clicked.connect(self.iniciar_telemetria_ind)
         self.ui_telemetry.btn_export_tel.clicked.connect(self.exportar_pdf_telemetria)
         self.ui_telemetry.btn_comp.clicked.connect(self.iniciar_telemetria_comp)
         
-        # Sinais da aba de Estratégia
         self.ui_prediction.btn_predict.clicked.connect(self.iniciar_previsao_futura)
         self.ui_prediction.btn_live.clicked.connect(self.iniciar_estrategia)
+        
+        self.ui_prediction.btn_logs_oracle.clicked.connect(self.mostrar_log_oracle)
+        self.ui_prediction.btn_logs_live.clicked.connect(self.mostrar_log_live)
+
+    def mostrar_log_oracle(self):
+        if not hasattr(self, 'janela_log_oracle'):
+            self.janela_log_oracle = TerminalDialog(self, "Terminal - Previsão de Corrida")
+            if hasattr(self, 'worker_oracle'):
+                log_signal = getattr(self.worker_oracle, 'log_msg', None)
+                if log_signal is not None:
+                    log_signal.connect(self.janela_log_oracle.log)
+        
+        self.janela_log_oracle.show()
+
+    def mostrar_log_live(self):
+        if not hasattr(self, 'janela_log_live'):
+            self.janela_log_live = TerminalDialog(self, "Terminal - Previsão de Estratégia")
+            if hasattr(self, 'worker_strategy'):
+                log_signal = getattr(self.worker_strategy, 'log_msg', None)
+                if log_signal is not None:
+                    log_signal.connect(self.janela_log_live.log)
+        self.janela_log_live.show()
 
 
     # UTILS
@@ -430,7 +478,15 @@ class PitWallApp(QMainWindow):
         laps = int(self.ui_prediction.fut_laps.text())
         chaos = float(self.ui_prediction.fut_chaos.text())
         
+        if not hasattr(self, 'janela_log_oracle'):
+            self.janela_log_oracle = TerminalDialog(self, "Terminal - Previsão de Corrida")
+        
+        self.janela_log_oracle.terminal.clear()
+        
         self.worker_oracle = FuturePredictionWorker(gp, laps, chaos)
+        
+        self.worker_oracle.log_msg.connect(self.janela_log_oracle.log)
+        
         self.worker_oracle.success.connect(self.atualizar_previsao)
         self.worker_oracle.error.connect(lambda e: self.mostrar_erro_aba(self.ui_prediction.fut_status, self.ui_prediction.btn_predict, e))
         self.worker_oracle.start()
@@ -508,14 +564,24 @@ class PitWallApp(QMainWindow):
 
     def iniciar_estrategia(self):
         self.ui_prediction.btn_live.setEnabled(False)
-        self.ui_prediction.live_status.setText("Calculando permutações...")
+        self.ui_prediction.live_status.setText("Calculando...")
         self.ui_prediction.live_status.setStyleSheet("color: #00aeef;")
         
         y = int(self.ui_prediction.live_year.text())
         gp = self.ui_prediction.live_gp.text()
         driver = self.ui_prediction.live_driver.text().upper()
         
+        if not hasattr(self, 'janela_log_live'):
+            self.janela_log_live = TerminalDialog(self, "Terminal - Previsão de Estratégia")
+            
+        self.janela_log_live.terminal.clear()
+        
         self.worker_strategy = StrategyWorker(y, gp, driver)
+        
+        log_signal = getattr(self.worker_strategy, 'log_msg', None)
+        if log_signal is not None:
+            log_signal.connect(self.janela_log_live.log)
+            
         self.worker_strategy.success.connect(self.atualizar_estrategia)
         self.worker_strategy.error.connect(lambda e: self.mostrar_erro_aba(self.ui_prediction.live_status, self.ui_prediction.btn_live, e))
         self.worker_strategy.start()

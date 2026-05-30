@@ -149,6 +149,10 @@ class StrategyPredictionUI(QWidget):
         
         self.btn_predict = QPushButton("Rodar Simulação")
         self.btn_predict.setObjectName("btn_primary")
+        
+        self.btn_logs_oracle = QPushButton("Terminal")
+        self.btn_logs_oracle.setStyleSheet("background-color: #27272a; color: #a1a1aa; border: 1px solid #3f3f46;")
+        
         self.fut_status = QLabel("")
 
         control_layout.addWidget(QLabel("GP Futuro:"))
@@ -158,6 +162,7 @@ class StrategyPredictionUI(QWidget):
         control_layout.addWidget(QLabel("Prob. Chuva/SC:"))
         control_layout.addWidget(self.fut_chaos)
         control_layout.addWidget(self.btn_predict)
+        control_layout.addWidget(self.btn_logs_oracle) 
         control_layout.addWidget(self.fut_status)
         control_layout.addStretch()
         layout.addWidget(control_frame)
@@ -190,6 +195,9 @@ class StrategyPredictionUI(QWidget):
         self.btn_export_est = QPushButton("Exportar PDF")
         self.btn_export_est.setEnabled(False) 
         
+        self.btn_logs_live = QPushButton("Terminal")
+        self.btn_logs_live.setStyleSheet("background-color: #27272a; color: #a1a1aa; border: 1px solid #3f3f46;")
+        
         self.live_status = QLabel("")
 
         control_layout.addWidget(QLabel("Ano:"))
@@ -200,6 +208,7 @@ class StrategyPredictionUI(QWidget):
         control_layout.addWidget(self.live_driver)
         control_layout.addWidget(self.btn_live)
         control_layout.addWidget(self.btn_export_est) 
+        control_layout.addWidget(self.btn_logs_live) 
         control_layout.addWidget(self.live_status)
         control_layout.addStretch()
         layout.addWidget(control_frame)
