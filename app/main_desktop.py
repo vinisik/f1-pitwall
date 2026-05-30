@@ -158,6 +158,8 @@ class PitWallApp(QMainWindow):
         for i, row in enumerate(resultados):
             tabela.insertRow(i)
             
+            tabela.setRowHeight(i, 45) 
+            
             item_pos = QTableWidgetItem(str(row.get('chegada', '')))
             item_pos.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             tabela.setItem(i, 0, item_pos)
@@ -180,7 +182,8 @@ class PitWallApp(QMainWindow):
             
             stints_widget = QWidget()
             stints_layout = QHBoxLayout(stints_widget)
-            stints_layout.setContentsMargins(10, 2, 10, 2)
+            
+            stints_layout.setContentsMargins(10, 0, 10, 0)
             stints_layout.setSpacing(8)
             stints_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
             
@@ -189,15 +192,19 @@ class PitWallApp(QMainWindow):
                 voltas = stint.get('voltas', 0)
                 estilo = get_tire_style(composto)
                 
-                lbl_pneu = QLabel(f" {voltas}v ")
+                lbl_pneu = QLabel(f"{voltas}v")
                 lbl_pneu.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                
+                lbl_pneu.setFixedSize(40, 24) 
+                
                 lbl_pneu.setStyleSheet(f"""
-                    background-color: {estilo['bg']}; 
-                    color: {estilo['fg']}; 
-                    border-radius: 12px; 
-                    padding: 4px 8px;
-                    font-weight: bold;
-                    font-size: 11px;
+                    QLabel {{
+                        background-color: {estilo['bg']}; 
+                        color: {estilo['fg']}; 
+                        border-radius: 12px; 
+                        font-weight: 800;
+                        font-size: 11px;
+                    }}
                 """)
                 stints_layout.addWidget(lbl_pneu)
                 
