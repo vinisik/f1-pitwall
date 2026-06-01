@@ -119,7 +119,7 @@ def obter_resumo_corrida(ano: int, gp: str):
         print(f"Erro no resumo da corrida: {e}")
         return {"erro": f"Falha ao gerar análise da corrida: {str(e)}"}
     
-def comparar_telemetria(ano: int, gp: str, piloto1: str, piloto2: str, sessao: str = 'R'):
+def comparar_telemetria(ano: int, gp: str, piloto1: str, piloto2: str, sessao: str = 'R', lap_num1=None, lap_num2=None):
     try:
         session = fastf1.get_session(ano, gp, sessao)
         session.load(telemetry=True, weather=False, messages=False)
@@ -129,8 +129,18 @@ def comparar_telemetria(ano: int, gp: str, piloto1: str, piloto2: str, sessao: s
         
         if laps1.empty or laps2.empty: return {"erro": "Piloto não encontrado ou sem voltas."}
 
-        lap1 = laps1.pick_fastest()
-        lap2 = laps2.pick_fastest()
+        # Filtro de voltas
+        if lap_num1:
+            try: lap1 = laps1[laps1['LapNumber'] == float(lap_num1)].iloc[0]
+            except: lap1 = laps1.pick_fastest()
+        else:
+            lap1 = laps1.pick_fastest()
+
+        if lap_num2:
+            try: lap2 = laps2[laps2['LapNumber'] == float(lap_num2)].iloc[0]
+            except: lap2 = laps2.pick_fastest()
+        else:
+            lap2 = laps2.pick_fastest()
 
         if lap1 is None or lap1.empty or pd.isna(lap1.get('LapTime')): return {"erro": f"Volta inválida para {piloto1}."}
         if lap2 is None or lap2.empty or pd.isna(lap2.get('LapTime')): return {"erro": f"Volta inválida para {piloto2}."}
@@ -144,7 +154,7 @@ def comparar_telemetria(ano: int, gp: str, piloto1: str, piloto2: str, sessao: s
         tel2 = tel2.sort_values('Distance')
         
         merged = pd.merge_asof(tel1, tel2, on='Distance', direction='nearest')
-        merged = merged.iloc[::3, :] # Downsample para otimização visual
+        merged = merged.iloc[::3, :] 
         
         merged = merged.replace([np.inf, -np.inf], np.nan)
         merged = merged.where(pd.notnull(merged), None)

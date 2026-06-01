@@ -76,6 +76,11 @@ class TelemetryTabUI(QWidget):
         self.ind_gp = QLineEdit("Brazil"); self.ind_gp.setFixedWidth(150)
         self.ind_d1 = QLineEdit("VER"); self.ind_d1.setFixedWidth(80)
         
+        # Campo para escolher a volta específica 
+        self.ind_lap = QLineEdit("")
+        self.ind_lap.setFixedWidth(70)
+        self.ind_lap.setPlaceholderText("Volta")
+        
         self.btn_ind = QPushButton("Analisar Piloto")
         self.btn_ind.setObjectName("btn_primary")
         self.btn_export_tel = QPushButton("Exportar PDF")
@@ -85,6 +90,7 @@ class TelemetryTabUI(QWidget):
         control_layout.addWidget(self.ind_year)
         control_layout.addWidget(self.ind_gp)
         control_layout.addWidget(self.ind_d1)
+        control_layout.addWidget(self.ind_lap) 
         control_layout.addWidget(self.btn_ind)
         control_layout.addWidget(self.btn_export_tel)
         control_layout.addWidget(self.ind_status)

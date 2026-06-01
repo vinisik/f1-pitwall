@@ -21,7 +21,7 @@ def _adicionar_cabecalho_com_logo(canvas, doc):
         canvas.drawImage(logo_path, 40, 780, width=120, height=40, preserveAspectRatio=True, mask='auto')
     else:
         canvas.setFont('Helvetica-Bold', 14)
-        canvas.drawString(40, 800, "[ LOGO DA APLICAÇÃO AQUI ]")
+        canvas.drawString(40, 800, "[ F1 Pit Wall ]")
         
     canvas.setLineWidth(1)
     canvas.line(40, 770, 550, 770) 

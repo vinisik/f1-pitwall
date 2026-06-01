@@ -239,15 +239,20 @@ class PitWallApp(QMainWindow):
         y = int(self.ui_telemetry.ind_year.text())
         gp = self.ui_telemetry.ind_gp.text()
         d1 = self.ui_telemetry.ind_d1.text().upper()
+        lap_input = self.ui_telemetry.ind_lap.text()
         
-        self.worker_ind = SingleTelemetryWorker(y, gp, d1)
+        # Lê o input do filtro de voltas
+        lap_num = int(lap_input) if lap_input.isdigit() else None
+        
+        self.worker_ind = SingleTelemetryWorker(y, gp, d1, lap_num)
         self.worker_ind.success.connect(self.atualizar_telemetria_ind)
         self.worker_ind.error.connect(lambda e: self.mostrar_erro_aba(self.ui_telemetry.ind_status, self.ui_telemetry.btn_ind, e))
         self.worker_ind.start()
 
+    # Atualiza a visualização da telemetria individual
     def atualizar_telemetria_ind(self, dados, d1):
         self.ui_telemetry.btn_ind.setEnabled(True)
-        self.ui_telemetry.ind_status.setText(f"Telemetria de {d1} carregada. Tempo de Volta: {dados.get('lap_time_1', 'N/A')}s")
+        self.ui_telemetry.ind_status.setText(f"Telemetria carregada. Tempo: {dados.get('lap_time_1', 'N/A')}s")
         self.ui_telemetry.ind_status.setStyleSheet("color: #2ecc71;")
         self.ui_telemetry.btn_export_tel.setEnabled(True)
         
@@ -274,8 +279,9 @@ class PitWallApp(QMainWindow):
         x_map = np.array([get_val(r, f'X_{d1}') for r in valid_rows])
         y_map = np.array([get_val(r, f'Y_{d1}') for r in valid_rows])
 
-        fig = plt.figure(figsize=(10, 10), facecolor='#1a1a1a', dpi=100)
-        gs = GridSpec(5, 1, height_ratios=[3, 1.5, 1, 1, 1], hspace=0.3)
+        # Renderização do mapa da pista
+        fig = plt.figure(figsize=(10, 12), facecolor='#1a1a1a', dpi=100)
+        gs = GridSpec(5, 1, height_ratios=[5, 1.5, 1, 1, 1], hspace=0.3)
         fig.patch.set_facecolor('#1a1a1a')
 
         ax_map = fig.add_subplot(gs[0], facecolor='#1a1a1a')
@@ -294,6 +300,11 @@ class PitWallApp(QMainWindow):
         ax_map.axis('off')
         ax_map.set_aspect('equal', adjustable='datalim')
         car_dot1, = ax_map.plot([], [], 'o', color=self.color_d1, markersize=8, zorder=5)
+        
+        # Caixa de texto para mostrar a velocidade atual do carro
+        speed_text = ax_map.text(0.02, 0.90, 'VEL.: -- km/h', transform=ax_map.transAxes, 
+                                 color="#155f8a", fontsize=12, fontweight='bold',
+                                 bbox=dict(facecolor='#121212', edgecolor='#334155', boxstyle='round,pad=0.5'))
         
         vlines = [ax.axvline(x=0, color='#f8fafc', linestyle='-', linewidth=1, alpha=0, zorder=10) for ax in telemetry_axes]
 
@@ -323,18 +334,24 @@ class PitWallApp(QMainWindow):
         self.ind_canvas = FigureCanvas(fig)
         self.ui_telemetry.ind_chart_layout.addWidget(self.ind_canvas)
 
+        # Atualiza a posição no mapa ao mover o mouse sobre os gráficos
         def on_mouse_move_ind(event):
             if event.inaxes in telemetry_axes:
                 x_mouse = event.xdata
                 if x_mouse is not None:
                     idx = (np.abs(dist - x_mouse)).argmin()
-                    if idx < len(x_map): car_dot1.set_data([x_map[idx]], [y_map[idx]])
+                    if idx < len(x_map): 
+                        car_dot1.set_data([x_map[idx]], [y_map[idx]])
+                        vel_atual = int(s1[idx]) if not np.isnan(s1[idx]) else 0
+                        speed_text.set_text(f"VEL.: {vel_atual} km/h")
+                        
                     for vline in vlines:
                         vline.set_xdata([x_mouse, x_mouse])
                         vline.set_alpha(1)
                     fig.canvas.draw_idle()
             else:
                 car_dot1.set_data([], [])
+                speed_text.set_text('VEL.: -- km/h')
                 for vline in vlines: vline.set_alpha(0)
                 fig.canvas.draw_idle()
 

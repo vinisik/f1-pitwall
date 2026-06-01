@@ -10,13 +10,14 @@ class SingleTelemetryWorker(QThread):
     success = Signal(dict, str)
     error = Signal(str)
 
-    def __init__(self, year, gp, d1):
+    def __init__(self, year, gp, d1, lap_num=None):
         super().__init__()
-        self.year, self.gp, self.d1 = year, gp, d1
+        self.year, self.gp, self.d1, self.lap_num = year, gp, d1, lap_num
 
     def run(self):
         try:
-            dados = comparar_telemetria(self.year, self.gp, self.d1, self.d1)
+            # Passa a volta para a API
+            dados = comparar_telemetria(self.year, self.gp, self.d1, self.d1, lap_num1=self.lap_num, lap_num2=self.lap_num)
             if "erro" in dados: self.error.emit(dados["erro"])
             else: self.success.emit(dados, self.d1)
         except Exception as e:
