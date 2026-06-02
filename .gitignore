@@ -13,7 +13,7 @@ frontend/dist/
 .DS_Store
 
 # Relatórios gerados
-relatorios_gerados/
+Relatórios/*
 
 # Cache
 cache_f1/
@@ -22,3 +22,4 @@ cache_f1/
 
 .vscode
 .idea
+
