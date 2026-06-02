@@ -240,11 +240,12 @@ class PitWallApp(QMainWindow):
         gp = self.ui_telemetry.ind_gp.text()
         d1 = self.ui_telemetry.ind_d1.text().upper()
         lap_input = self.ui_telemetry.ind_lap.text()
+        session_id = self.ui_telemetry.ind_session.currentData()
         
         # Lê o input do filtro de voltas
         lap_num = int(lap_input) if lap_input.isdigit() else None
         
-        self.worker_ind = SingleTelemetryWorker(y, gp, d1, lap_num)
+        self.worker_ind = SingleTelemetryWorker(y, gp, d1, lap_num, session_id)
         self.worker_ind.success.connect(self.atualizar_telemetria_ind)
         self.worker_ind.error.connect(lambda e: self.mostrar_erro_aba(self.ui_telemetry.ind_status, self.ui_telemetry.btn_ind, e))
         self.worker_ind.start()
@@ -271,15 +272,19 @@ class PitWallApp(QMainWindow):
             elif f"{key}_x" in row and row[f"{key}_x"] is not None: return row[f"{key}_x"]
             return 0
 
+        def norm_brk(val):
+            if val in [True, 'True', 1, 1.0, 100, 100.0]: return 100
+            if isinstance(val, (int, float)) and val > 0: return 100
+            return 0
+
         dist = np.array([r['Distance'] for r in valid_rows])
         s1 = [get_val(r, f'Speed_{d1}') for r in valid_rows]
         thr1 = [get_val(r, f'Throttle_{d1}') for r in valid_rows]
-        brk1 = [get_val(r, f'Brake_{d1}') for r in valid_rows]
+        brk1 = [norm_brk(get_val(r, f'Brake_{d1}')) for r in valid_rows] # Aplicado aqui
         gr1 = [get_val(r, f'nGear_{d1}') for r in valid_rows]
         x_map = np.array([get_val(r, f'X_{d1}') for r in valid_rows])
         y_map = np.array([get_val(r, f'Y_{d1}') for r in valid_rows])
 
-        # Renderização do mapa da pista
         fig = plt.figure(figsize=(10, 12), facecolor='#1a1a1a', dpi=100)
         gs = GridSpec(5, 1, height_ratios=[5, 1.5, 1, 1, 1], hspace=0.3)
         fig.patch.set_facecolor('#1a1a1a')
@@ -301,10 +306,11 @@ class PitWallApp(QMainWindow):
         ax_map.set_aspect('equal', adjustable='datalim')
         car_dot1, = ax_map.plot([], [], 'o', color=self.color_d1, markersize=8, zorder=5)
         
-        # Caixa de texto para mostrar a velocidade atual do carro
-        speed_text = ax_map.text(0.02, 0.90, 'VEL.: -- km/h', transform=ax_map.transAxes, 
-                                 color="#155f8a", fontsize=12, fontweight='bold',
-                                 bbox=dict(facecolor='#121212', edgecolor='#334155', boxstyle='round,pad=0.5'))
+        # Card com a Telemetria
+        telemetry_text = ax_map.text(0.02, 0.95, '', transform=ax_map.transAxes, 
+                                     color='#2ecc71', fontsize=10, fontweight='bold',
+                                     va='top', 
+                                     bbox=dict(facecolor='#121212', edgecolor='#334155', boxstyle='round,pad=0.5', alpha=0.9))
         
         vlines = [ax.axvline(x=0, color='#f8fafc', linestyle='-', linewidth=1, alpha=0, zorder=10) for ax in telemetry_axes]
 
@@ -334,7 +340,6 @@ class PitWallApp(QMainWindow):
         self.ind_canvas = FigureCanvas(fig)
         self.ui_telemetry.ind_chart_layout.addWidget(self.ind_canvas)
 
-        # Atualiza a posição no mapa ao mover o mouse sobre os gráficos
         def on_mouse_move_ind(event):
             if event.inaxes in telemetry_axes:
                 x_mouse = event.xdata
@@ -342,8 +347,18 @@ class PitWallApp(QMainWindow):
                     idx = (np.abs(dist - x_mouse)).argmin()
                     if idx < len(x_map): 
                         car_dot1.set_data([x_map[idx]], [y_map[idx]])
+                        
                         vel_atual = int(s1[idx]) if not np.isnan(s1[idx]) else 0
-                        speed_text.set_text(f"VEL.: {vel_atual} km/h")
+                        ace_atual = int(thr1[idx]) if not np.isnan(thr1[idx]) else 0
+                        mar_atual = int(gr1[idx]) if not np.isnan(gr1[idx]) else 0
+                        fre_status = "ON" if brk1[idx] > 0 else "OFF"
+                        
+                        info = (f"PILOTO: {d1}\n"
+                                f"VEL: {vel_atual} km/h\n"
+                                f"ACE: {ace_atual}%\n"
+                                f"FRE: {fre_status}\n"
+                                f"MAR: {mar_atual}")
+                        telemetry_text.set_text(info)
                         
                     for vline in vlines:
                         vline.set_xdata([x_mouse, x_mouse])
@@ -351,7 +366,7 @@ class PitWallApp(QMainWindow):
                     fig.canvas.draw_idle()
             else:
                 car_dot1.set_data([], [])
-                speed_text.set_text('VEL.: -- km/h')
+                telemetry_text.set_text('')
                 for vline in vlines: vline.set_alpha(0)
                 fig.canvas.draw_idle()
 
@@ -382,8 +397,9 @@ class PitWallApp(QMainWindow):
         gp = self.ui_telemetry.comp_gp.text()
         d1 = self.ui_telemetry.comp_d1.text().upper()
         d2 = self.ui_telemetry.comp_d2.text().upper()
+        session_id = self.ui_telemetry.comp_session.currentData()
         
-        self.worker_comp = TelemetryWorker(y, gp, d1, d2)
+        self.worker_comp = TelemetryWorker(y, gp, d1, d2, session_id)
         self.worker_comp.success.connect(self.atualizar_telemetria_comp)
         self.worker_comp.error.connect(lambda e: self.mostrar_erro_aba(self.ui_telemetry.comp_status, self.ui_telemetry.btn_comp, e))
         self.worker_comp.start()
@@ -401,21 +417,26 @@ class PitWallApp(QMainWindow):
         telemetry = dados.get('telemetry', [])
         valid_rows = [r for r in telemetry if r['Distance'] is not None]
         
+        def norm_brk(val):
+            if val in [True, 'True', 1, 1.0, 100, 100.0]: return 100
+            if isinstance(val, (int, float)) and val > 0: return 100
+            return 0
+        
         dist = np.array([r['Distance'] for r in valid_rows])
         s1 = [r.get(f'Speed_{d1}', 0) for r in valid_rows]
         s2 = [r.get(f'Speed_{d2}', 0) for r in valid_rows]
         thr1 = [r.get(f'Throttle_{d1}', 0) for r in valid_rows]
         thr2 = [r.get(f'Throttle_{d2}', 0) for r in valid_rows]
-        brk1 = [r.get(f'Brake_{d1}', 0) for r in valid_rows]
-        brk2 = [r.get(f'Brake_{d2}', 0) for r in valid_rows]
+        brk1 = [norm_brk(r.get(f'Brake_{d1}', 0)) for r in valid_rows]
+        brk2 = [norm_brk(r.get(f'Brake_{d2}', 0)) for r in valid_rows] 
         gr1 = [r.get(f'nGear_{d1}', 0) for r in valid_rows]
         gr2 = [r.get(f'nGear_{d2}', 0) for r in valid_rows]
         
         x_map = np.array([r.get(f'X_{d1}', 0) for r in valid_rows])
         y_map = np.array([r.get(f'Y_{d1}', 0) for r in valid_rows])
 
-        fig = plt.figure(figsize=(10, 10), facecolor='#1a1a1a', dpi=100)
-        gs = GridSpec(5, 1, height_ratios=[3, 1.5, 1, 1, 1], hspace=0.3)
+        fig = plt.figure(figsize=(10, 12), facecolor='#1a1a1a', dpi=100)
+        gs = GridSpec(5, 1, height_ratios=[5, 1.5, 1, 1, 1], hspace=0.3)
         fig.patch.set_facecolor('#1a1a1a')
 
         ax_map = fig.add_subplot(gs[0], facecolor='#1a1a1a')
@@ -437,6 +458,9 @@ class PitWallApp(QMainWindow):
         
         car_dot1, = ax_map.plot([], [], 'o', color=self.color_d1, markersize=8, zorder=5)
         car_dot2, = ax_map.plot([], [], 'o', color=self.color_d2, markersize=8, zorder=6)
+        
+        info_d1 = ax_map.text(0.02, 0.95, '', transform=ax_map.transAxes, color=self.color_d1, fontsize=10, fontweight='bold', va='top', bbox=dict(facecolor='#121212', edgecolor='#334155', boxstyle='round,pad=0.5', alpha=0.9))
+        info_d2 = ax_map.text(0.98, 0.95, '', transform=ax_map.transAxes, color=self.color_d2, fontsize=10, fontweight='bold', va='top', ha='right', bbox=dict(facecolor='#121212', edgecolor='#334155', boxstyle='round,pad=0.5', alpha=0.9))
         
         vlines = [ax.axvline(x=0, color='#f8fafc', linestyle='-', linewidth=1, alpha=0, zorder=10) for ax in telemetry_axes]
 
@@ -478,6 +502,21 @@ class PitWallApp(QMainWindow):
                     if idx < len(x_map):
                         car_dot1.set_data([x_map[idx]], [y_map[idx]])
                         car_dot2.set_data([x_map[idx]], [y_map[idx]])
+                        
+                        # Formatando Dados D1
+                        vel1 = int(s1[idx]) if not np.isnan(s1[idx]) else 0
+                        ace1 = int(thr1[idx]) if not np.isnan(thr1[idx]) else 0
+                        mar1 = int(gr1[idx]) if not np.isnan(gr1[idx]) else 0
+                        fre1 = "ON" if brk1[idx] > 0 else "OFF"
+                        
+                        # Formatando Dados D2
+                        vel2 = int(s2[idx]) if not np.isnan(s2[idx]) else 0
+                        ace2 = int(thr2[idx]) if not np.isnan(thr2[idx]) else 0
+                        mar2 = int(gr2[idx]) if not np.isnan(gr2[idx]) else 0
+                        fre2 = "ON" if brk2[idx] > 0 else "OFF"
+                        
+                        info_d1.set_text(f"PILOTO: {d1}\nVEL: {vel1} km/h\nACE: {ace1}%\nFRE: {fre1}\nMAR: {mar1}")
+                        info_d2.set_text(f"PILOTO: {d2}\nVEL: {vel2} km/h\nACE: {ace2}%\nFRE: {fre2}\nMAR: {mar2}")
                     
                     for vline in vlines:
                         vline.set_xdata([x_mouse, x_mouse])
@@ -486,6 +525,8 @@ class PitWallApp(QMainWindow):
             else:
                 car_dot1.set_data([], [])
                 car_dot2.set_data([], [])
+                info_d1.set_text('')
+                info_d2.set_text('')
                 for vline in vlines: vline.set_alpha(0)
                 fig.canvas.draw_idle()
 
@@ -793,6 +834,34 @@ class PitWallApp(QMainWindow):
         QScrollBar:vertical { background: #121212; width: 10px; }
         QScrollBar::handle:vertical { background: #27272a; border-radius: 5px; }
         QScrollBar::handle:vertical:hover { background: #3f3f46; }
+
+        /* Dropdown das Sessões */
+        QComboBox { 
+            background-color: #1a1a1a; 
+            color: #ffffff; 
+            border: 1px solid #27272a; 
+            border-radius: 4px; 
+            padding: 8px 10px; 
+            font-weight: 600; 
+            font-size: 13px;
+            font-family: '_FONT_F1_', Arial, sans-serif;
+        }
+        QComboBox::drop-down { border: none; width: 20px; }
+        QComboBox::down-arrow { 
+            image: none; 
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 5px solid #a1a1aa;
+            margin-right: 8px;
+        }
+        QComboBox QAbstractItemView {
+            background-color: #121212;
+            color: #e4e4e7;
+            selection-background-color: #27272a;
+            selection-color: #ffffff;
+            border: 1px solid #27272a;
+        }
+
         """
         self.setStyleSheet(qss)
 

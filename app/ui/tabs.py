@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTabWidget, 
                                QLineEdit, QPushButton, QLabel, QFrame, 
-                               QTableWidget, QHeaderView)
+                               QTableWidget, QHeaderView, QComboBox)
 from PySide6.QtCore import Qt
 
 # Helper de Cores de Pneus
@@ -80,6 +80,17 @@ class TelemetryTabUI(QWidget):
         self.ind_lap = QLineEdit("")
         self.ind_lap.setFixedWidth(70)
         self.ind_lap.setPlaceholderText("Volta")
+
+        self.ind_session = QComboBox()
+        self.ind_session = QComboBox()
+        self.ind_session.addItem("Corrida", "R")
+        self.ind_session.addItem("Classificação", "Q")
+        self.ind_session.addItem("Sprint", "S")
+        self.ind_session.addItem("Sprint Qualy", "SQ")
+        self.ind_session.addItem("Treino 1", "FP1")
+        self.ind_session.addItem("Treino 2", "FP2")
+        self.ind_session.addItem("Treino 3", "FP3")
+        self.ind_session.setFixedWidth(110)
         
         self.btn_ind = QPushButton("Analisar Piloto")
         self.btn_ind.setObjectName("btn_primary")
@@ -89,6 +100,7 @@ class TelemetryTabUI(QWidget):
 
         control_layout.addWidget(self.ind_year)
         control_layout.addWidget(self.ind_gp)
+        control_layout.addWidget(self.ind_session)
         control_layout.addWidget(self.ind_d1)
         control_layout.addWidget(self.ind_lap) 
         control_layout.addWidget(self.btn_ind)
@@ -110,6 +122,17 @@ class TelemetryTabUI(QWidget):
         self.comp_gp = QLineEdit("Brazil"); self.comp_gp.setFixedWidth(150)
         self.comp_d1 = QLineEdit("VER"); self.comp_d1.setFixedWidth(80); self.comp_d1.setPlaceholderText("Alvo 1")
         self.comp_d2 = QLineEdit("NOR"); self.comp_d2.setFixedWidth(80); self.comp_d2.setPlaceholderText("Alvo 2")
+
+        self.comp_session = QComboBox()
+        self.comp_session = QComboBox()
+        self.comp_session.addItem("Corrida", "R")
+        self.comp_session.addItem("Classificação", "Q")
+        self.comp_session.addItem("Sprint", "S")
+        self.comp_session.addItem("Sprint Qualy", "SQ")
+        self.comp_session.addItem("Treino 1", "FP1")
+        self.comp_session.addItem("Treino 2", "FP2")
+        self.comp_session.addItem("Treino 3", "FP3")
+        self.comp_session.setFixedWidth(110)
         
         self.btn_comp = QPushButton("Comparar Pilotos")
         self.btn_comp.setObjectName("btn_primary")
@@ -117,6 +140,7 @@ class TelemetryTabUI(QWidget):
 
         control_layout.addWidget(self.comp_year)
         control_layout.addWidget(self.comp_gp)
+        control_layout.addWidget(self.comp_session)
         control_layout.addWidget(self.comp_d1)
         control_layout.addWidget(self.comp_d2)
         control_layout.addWidget(self.btn_comp)

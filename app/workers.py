@@ -10,13 +10,12 @@ class SingleTelemetryWorker(QThread):
     success = Signal(dict, str)
     error = Signal(str)
 
-    def __init__(self, year, gp, d1, lap_num=None):
+    def __init__(self, year, gp, d1, lap_num=None, session='R'):
         super().__init__()
-        self.year, self.gp, self.d1, self.lap_num = year, gp, d1, lap_num
+        self.year, self.gp, self.d1, self.lap_num, self.session = year, gp, d1, lap_num, session
 
     def run(self):
         try:
-            # Passa a volta para a API
             dados = comparar_telemetria(self.year, self.gp, self.d1, self.d1, lap_num1=self.lap_num, lap_num2=self.lap_num)
             if "erro" in dados: self.error.emit(dados["erro"])
             else: self.success.emit(dados, self.d1)
@@ -28,13 +27,13 @@ class TelemetryWorker(QThread):
     success = Signal(dict, str, str)
     error = Signal(str)
 
-    def __init__(self, year, gp, d1, d2):
+    def __init__(self, year, gp, d1, d2, session='R'):
         super().__init__()
-        self.year, self.gp, self.d1, self.d2 = year, gp, d1, d2
+        self.year, self.gp, self.d1, self.d2, self.session = year, gp, d1, d2, session
 
     def run(self):
         try:
-            dados = comparar_telemetria(self.year, self.gp, self.d1, self.d2)
+            dados = comparar_telemetria(self.year, self.gp, self.d1, self.d2, sessao=self.session)
             if "erro" in dados: self.error.emit(dados["erro"])
             else: self.success.emit(dados, self.d1, self.d2)
         except Exception as e:
