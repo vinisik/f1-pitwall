@@ -41,6 +41,13 @@ class SummaryTabUI(QWidget):
         control_layout.addStretch()
         layout.addWidget(control_frame)
 
+        self.subtabs_sum = QTabWidget()
+        self.subtabs_sum.setObjectName("subtabs")
+        layout.addWidget(self.subtabs_sum, stretch=1)
+
+        # Tabela 
+        self.tab_table = QWidget()
+        tab_layout = QVBoxLayout(self.tab_table)
         self.table = QTableWidget(0, 5)
         self.table.setHorizontalHeaderLabels(["Pos", "Piloto", "Grid", "Variação", "Histórico de Pneus"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -48,8 +55,32 @@ class SummaryTabUI(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
         self.table.verticalHeader().setVisible(False)
-        layout.addWidget(self.table, stretch=1)
+        tab_layout.addWidget(self.table)
+        
+        # Posições
+        self.tab_pos = QWidget()
+        self.pos_chart_layout = QVBoxLayout(self.tab_pos)
 
+        # Ritmo
+        self.tab_pace = QWidget()
+        self.pace_chart_layout = QVBoxLayout(self.tab_pace)
+
+        # Tempo Pitstops
+        self.tab_pit = QWidget()
+        self.pit_chart_layout = QVBoxLayout(self.tab_pit)
+
+        # Speedtrap
+        self.tab_speed = QWidget()
+        self.speed_chart_layout = QVBoxLayout(self.tab_speed)
+
+        # Menu
+        self.subtabs_sum.addTab(self.tab_table, "Resumo Completo")
+        self.subtabs_sum.addTab(self.tab_pos, "Ganho/Perda de Posições")
+        self.subtabs_sum.addTab(self.tab_pace, "Ritmo (Pace)")
+        self.subtabs_sum.addTab(self.tab_pit, "Tempos de Pit Lane")
+        self.subtabs_sum.addTab(self.tab_speed, "Speed Trap")
+
+        
 class TelemetryTabUI(QWidget):
     def __init__(self):
         super().__init__()

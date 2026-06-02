@@ -83,10 +83,17 @@ def obter_resumo_corrida(ano: int, gp: str):
     try:
         session = fastf1.get_session(ano, gp, 'R')
         session.load(telemetry=False, weather=False, messages=False)
+        
         resultados = []
+        posicoes = {}
+        pace = {}
+        speedtrap = {}
+        pitstops = []
+        
+        laps = session.laps
         
         for drv in session.results['Abbreviation']:
-            drv_laps = session.laps.pick_driver(drv)
+            drv_laps = laps.pick_driver(drv)
             if drv_laps.empty: continue
                 
             try:
@@ -99,12 +106,14 @@ def obter_resumo_corrida(ano: int, gp: str):
 
             stints = []
             for stint, group in drv_laps.groupby('Stint'):
-                composto = group['Compound'].iloc[0]
+                compostos_validos = group['Compound'].dropna()
+                composto = compostos_validos.iloc[0] if not compostos_validos.empty else "UNKNOWN"
                 voltas_stint = len(group)
-                if pd.notna(composto): 
-                    try: stint_int = int(np.asarray(stint).astype(float))
-                    except (ValueError, TypeError): continue
-                    stints.append({"stint": stint_int, "composto": str(composto), "voltas": int(voltas_stint)})
+                try:
+                    stint_int = int(float(str(stint)))
+                except (ValueError, TypeError):
+                    stint_int = len(stints) + 1
+                stints.append({"stint": stint_int, "composto": str(composto), "voltas": int(voltas_stint)})
             
             saldo_posicoes = grid_pos - final_pos
             resultados.append({
@@ -112,8 +121,42 @@ def obter_resumo_corrida(ano: int, gp: str):
                 "saldo_posicoes": saldo_posicoes, "stints": stints
             })
             
+            # 2. Gráfico de Posições
+            pos_laps = drv_laps['LapNumber'].tolist()
+            pos_vals = drv_laps['Position'].tolist()
+            posicoes[str(drv)] = {"laps": pos_laps, "pos": pos_vals}
+            
+            # 3. Gráfico de Ritmo (Boxplot)
+            # Filtra apenas voltas limpas (Status 1) para o pace real
+            paces = drv_laps.pick_track_status('1')['LapTime'].dt.total_seconds().dropna().tolist()
+            pace[str(drv)] = paces
+            
+            # Gráfico de Speed Trap 
+            st_speeds = drv_laps['SpeedST'].dropna()
+            speedtrap[str(drv)] = float(st_speeds.max()) if not st_speeds.empty else 0.0
+            
+            # Tempos de Pit Stop 
+            # Calcula o tempo total no Pit Lane (Diferença entre Pit In e Pit Out)
+            in_laps = drv_laps[drv_laps['PitInTime'].notna()]
+            for _, lap in in_laps.iterrows():
+                lap_num = lap['LapNumber']
+                out_lap = drv_laps[drv_laps['LapNumber'] == lap_num + 1]
+                if not out_lap.empty:
+                    out_lap = out_lap.iloc[0]
+                    if pd.notna(lap['PitInTime']) and pd.notna(out_lap['PitOutTime']):
+                        pit_time = (out_lap['PitOutTime'] - lap['PitInTime']).total_seconds()
+                        pitstops.append({"piloto": str(drv), "volta": int(lap_num), "tempo": float(pit_time)})
+            
         resultados.sort(key=lambda x: x['chegada'] if x['chegada'] > 0 else 99)
-        return resultados
+        
+        # Retorna todos os dados de telemetria
+        return {
+            "tabela": resultados,
+            "posicoes": posicoes,
+            "pace": pace,
+            "pitstops": pitstops,
+            "speedtrap": speedtrap
+        }
         
     except Exception as e:
         print(f"Erro no resumo da corrida: {e}")

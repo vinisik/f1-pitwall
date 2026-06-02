@@ -57,6 +57,11 @@ class PitWallApp(QMainWindow):
         self.live_canvas = None
         self.oracle_canvas = None
 
+        self.sum_pos_canvas = None
+        self.sum_pace_canvas = None
+        self.sum_pit_canvas = None
+        self.sum_speed_canvas = None
+
         self.setup_ui()
         self.apply_theme()
 
@@ -146,18 +151,23 @@ class PitWallApp(QMainWindow):
         self.worker_summary.error.connect(lambda e: self.mostrar_erro_aba(self.ui_summary.sum_status, self.ui_summary.btn_summary, e))
         self.worker_summary.start()
 
-    def atualizar_resumo(self, resultados):
-        self.ultimos_dados_resumo = resultados
+    def atualizar_resumo(self, dados):
+        if "erro" in dados:
+            self.mostrar_erro_aba(self.ui_summary.sum_status, self.ui_summary.btn_summary, dados["erro"])
+            return
+
+        resultados_tabela = dados.get("tabela", [])
+        self.ultimos_dados_resumo = resultados_tabela 
+        
         self.ui_summary.btn_summary.setEnabled(True)
         self.ui_summary.btn_export_sum.setEnabled(True) 
-        self.ui_summary.sum_status.setText("Grid atualizado!")
+        self.ui_summary.sum_status.setText("Dados extraídos. Gerando gráficos...")
         
+        # Preencher Tabela
         tabela = self.ui_summary.table
         tabela.setRowCount(0) 
-        
-        for i, row in enumerate(resultados):
+        for i, row in enumerate(resultados_tabela):
             tabela.insertRow(i)
-            
             tabela.setRowHeight(i, 45) 
             
             item_pos = QTableWidgetItem(str(row.get('chegada', '')))
@@ -182,7 +192,6 @@ class PitWallApp(QMainWindow):
             
             stints_widget = QWidget()
             stints_layout = QHBoxLayout(stints_widget)
-            
             stints_layout.setContentsMargins(10, 0, 10, 0)
             stints_layout.setSpacing(8)
             stints_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
@@ -191,24 +200,133 @@ class PitWallApp(QMainWindow):
                 composto = stint.get('composto', 'UNKNOWN')
                 voltas = stint.get('voltas', 0)
                 estilo = get_tire_style(composto)
-                
                 lbl_pneu = QLabel(f"{voltas}v")
                 lbl_pneu.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                
                 lbl_pneu.setFixedSize(40, 24) 
-                
-                lbl_pneu.setStyleSheet(f"""
-                    QLabel {{
-                        background-color: {estilo['bg']}; 
-                        color: {estilo['fg']}; 
-                        border-radius: 12px; 
-                        font-weight: 800;
-                        font-size: 11px;
-                    }}
-                """)
+                lbl_pneu.setStyleSheet(f"QLabel {{ background-color: {estilo['bg']}; color: {estilo['fg']}; border-radius: 12px; font-family: Arial, sans-serif; font-weight: 800; font-size: 11px; }}")
                 stints_layout.addWidget(lbl_pneu)
-                
             tabela.setCellWidget(i, 4, stints_widget)
+
+        # Tema Escuro
+        def aplicar_estilo_eixo(ax, titulo, xlabel, ylabel):
+            ax.set_facecolor('#1a1a1a')
+            ax.tick_params(colors='#aaaaaa', labelsize=8)
+            for spine in ax.spines.values(): spine.set_edgecolor('#454548')
+            ax.grid(color='#454548', linestyle='--', linewidth=0.5, alpha=0.5)
+            ax.set_title(titulo, color='#f5f5f5', pad=10, fontsize=10)
+            if xlabel: ax.set_xlabel(xlabel, color='#aaaaaa', fontsize=9)
+            if ylabel: ax.set_ylabel(ylabel, color='#aaaaaa', fontsize=9)
+
+        # Gráfico de Posições
+        if self.sum_pos_canvas:
+            self.ui_summary.pos_chart_layout.removeWidget(self.sum_pos_canvas)
+            self.sum_pos_canvas.deleteLater()
+            
+        fig_pos, ax_pos = plt.subplots(figsize=(10, 5), facecolor='#1a1a1a', dpi=100)
+        fig_pos.patch.set_facecolor('#1a1a1a')
+        aplicar_estilo_eixo(ax_pos, "Evolução de Posições ao Longo da Corrida", "Voltas", "Posição")
+        
+        cmap = plt.get_cmap('tab20')
+        cores = getattr(cmap, 'colors', [cmap(i) for i in range(cmap.N)])
+        for i, (piloto, pdados) in enumerate(dados['posicoes'].items()):
+            ax_pos.plot(pdados['laps'], pdados['pos'], label=piloto, linewidth=2, color=cores[i%20])
+            
+        ax_pos.invert_yaxis() # P1 no topo
+        ax_pos.set_yticks(range(1, 21))
+        ax_pos.legend(loc='upper right', bbox_to_anchor=(1.12, 1), facecolor='#1a1a1a', edgecolor='#454548', labelcolor='white', fontsize=7)
+        fig_pos.tight_layout()
+        self.sum_pos_canvas = FigureCanvas(fig_pos)
+        self.ui_summary.pos_chart_layout.addWidget(self.sum_pos_canvas)
+
+        # Gráfico de Ritmo
+        if self.sum_pace_canvas:
+            self.ui_summary.pace_chart_layout.removeWidget(self.sum_pace_canvas)
+            self.sum_pace_canvas.deleteLater()
+
+        fig_pace, ax_pace = plt.subplots(figsize=(10, 5), facecolor='#1a1a1a', dpi=100)
+        fig_pace.patch.set_facecolor('#1a1a1a')
+        aplicar_estilo_eixo(ax_pace, "Ritmo de Corrida (Distribuição de Tempos de Volta Limpa)", "Pilotos", "Tempo (segundos)")
+        
+        pace_labels = []
+        pace_data = []
+        # Ordenar os pilotos pela ordem de chegada 
+        for row in resultados_tabela:
+            drv = row['piloto']
+            if drv in dados['pace'] and len(dados['pace'][drv]) > 0:
+                pace_labels.append(drv)
+                pace_data.append(dados['pace'][drv])
+                
+        # Criar boxplot para cada piloto, mostrando a distribuição dos tempos de volta limpa        
+        if pace_data:
+            positions = range(1, len(pace_data) + 1)
+            bplot = ax_pace.boxplot(pace_data, positions=positions, patch_artist=True, notch=False, vert=True,
+                                    boxprops=dict(facecolor='#00aeef', color='#ffffff', alpha=0.6),
+                                    capprops=dict(color='#ffffff'), whiskerprops=dict(color='#ffffff'),
+                                    flierprops=dict(marker='o', color='#e10600', markersize=3, alpha=0.5),
+                                    medianprops=dict(color='#e10600', linewidth=2))
+            ax_pace.set_xticks(list(positions))
+            ax_pace.set_xticklabels(pace_labels, rotation=45, ha='right')
+        fig_pace.tight_layout()
+        self.sum_pace_canvas = FigureCanvas(fig_pace)
+        self.ui_summary.pace_chart_layout.addWidget(self.sum_pace_canvas)
+
+        # Gráfico de Pitstops
+        if self.sum_pit_canvas:
+            self.ui_summary.pit_chart_layout.removeWidget(self.sum_pit_canvas)
+            self.sum_pit_canvas.deleteLater()
+
+        fig_pit, ax_pit = plt.subplots(figsize=(10, 5), facecolor='#1a1a1a', dpi=100)
+        fig_pit.patch.set_facecolor('#1a1a1a')
+        aplicar_estilo_eixo(ax_pit, "Tempo Gasto no Pit Lane (In/Out)", "Volta do Pit Stop", "Duração (segundos)")
+        
+        # Plotar os pit stops como pontos, destacando o piloto e o tempo gasto
+        if dados['pitstops']:
+            voltas_pit = [p['volta'] for p in dados['pitstops']]
+            tempos_pit = [p['tempo'] for p in dados['pitstops']]
+            pilotos_pit = [p['piloto'] for p in dados['pitstops']]
+            
+            scatter = ax_pit.scatter(voltas_pit, tempos_pit, c='#e2d014', s=100, edgecolors='#ffffff', alpha=0.8)
+            for i, txt in enumerate(pilotos_pit):
+                ax_pit.annotate(txt, (voltas_pit[i], tempos_pit[i]), xytext=(0, 8), textcoords='offset points', ha='center', color='white', fontsize=7, weight='bold')
+        else:
+            ax_pit.text(0.5, 0.5, "Nenhum Pit Stop Registrado", color='white', ha='center', transform=ax_pit.transAxes)
+            
+        fig_pit.tight_layout()
+        self.sum_pit_canvas = FigureCanvas(fig_pit)
+        self.ui_summary.pit_chart_layout.addWidget(self.sum_pit_canvas)
+
+        # Gráfico de Speed Trap
+        if self.sum_speed_canvas:
+            self.ui_summary.speed_chart_layout.removeWidget(self.sum_speed_canvas)
+            self.sum_speed_canvas.deleteLater()
+
+        fig_spd, ax_spd = plt.subplots(figsize=(10, 5), facecolor='#1a1a1a', dpi=100)
+        fig_spd.patch.set_facecolor('#1a1a1a')
+        aplicar_estilo_eixo(ax_spd, "Velocidade Máxima (Speed Trap)", "Velocidade (km/h)", "Pilotos")
+        
+        # Filtra e ordena velocidades
+        spd_drivers = [d for d, s in dados['speedtrap'].items() if s > 0]
+        spd_vals = [dados['speedtrap'][d] for d in spd_drivers]
+        
+        if spd_vals:
+            spd_sorted = sorted(zip(spd_drivers, spd_vals), key=lambda x: x[1])
+            y_pos = np.arange(len(spd_sorted))
+            bars = ax_spd.barh(y_pos, [x[1] for x in spd_sorted], color='#e10600', height=0.6)
+            ax_spd.set_yticks(y_pos)
+            ax_spd.set_yticklabels([x[0] for x in spd_sorted])
+            ax_spd.set_xlim(min(spd_vals) - 10, max(spd_vals) + 5) 
+            
+            for bar in bars:
+                ax_spd.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height()/2, f"{bar.get_width():.1f}", 
+                            va='center', color='white', fontsize=8, weight='bold')
+
+        fig_spd.tight_layout()
+        self.sum_speed_canvas = FigureCanvas(fig_spd)
+        self.ui_summary.speed_chart_layout.addWidget(self.sum_speed_canvas)
+
+        # Finalizando a UI
+        self.ui_summary.sum_status.setText("Análise completa carregada com sucesso!")
+        self.ui_summary.sum_status.setStyleSheet("color: #2ecc71;")
 
     def exportar_pdf_resumo(self):
         try:

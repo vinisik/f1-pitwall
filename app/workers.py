@@ -144,7 +144,7 @@ class StrategyWorker(QThread):
 
 
 class SummaryWorker(QThread):
-    success = Signal(list)
+    success = Signal(dict)
     error = Signal(str)
 
     def __init__(self, year, gp):
