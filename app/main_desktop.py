@@ -157,7 +157,7 @@ class PitWallApp(QMainWindow):
             return
 
         resultados_tabela = dados.get("tabela", [])
-        self.ultimos_dados_resumo = resultados_tabela 
+        self.ultimos_dados_resumo = dados 
         
         self.ui_summary.btn_summary.setEnabled(True)
         self.ui_summary.btn_export_sum.setEnabled(True) 
@@ -302,7 +302,7 @@ class PitWallApp(QMainWindow):
 
         fig_spd, ax_spd = plt.subplots(figsize=(10, 5), facecolor='#1a1a1a', dpi=100)
         fig_spd.patch.set_facecolor('#1a1a1a')
-        aplicar_estilo_eixo(ax_spd, "Velocidade Máxima (Speed Trap)", "Velocidade (km/h)", "Pilotos")
+        aplicar_estilo_eixo(ax_spd, "Speed Trap", "Velocidade (km/h)", "Pilotos")
         
         # Filtra e ordena velocidades
         spd_drivers = [d for d, s in dados['speedtrap'].items() if s > 0]
