@@ -3,6 +3,37 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
                                QTableWidget, QHeaderView, QComboBox)
 from PySide6.QtCore import Qt
 
+# Dados dos circuitos: número de voltas e "caos" (probabilidade de eventos imprevisíveis como chuva ou safety car)
+CIRCUITOS_F1 = {
+    "Australia": {"laps": 58, "chaos": 0.75},
+    "China": {"laps": 56, "chaos": 0.50},
+    "Japan": {"laps": 53, "chaos": 0.55},
+    "Bahrain": {"laps": 57, "chaos": 0.40},
+    "Saudi Arabia": {"laps": 50, "chaos": 0.90},
+    "Miami": {"laps": 57, "chaos": 0.70},
+    "Canada": {"laps": 70, "chaos": 0.83},
+    "Monaco": {"laps": 78, "chaos": 1.00},
+    "Barcelona": {"laps": 66, "chaos": 0.50},
+    "Austria": {"laps": 71, "chaos": 0.50},
+    "Great Britain": {"laps": 52, "chaos": 0.65},
+    "Belgium": {"laps": 44, "chaos": 0.80},
+    "Hungary": {"laps": 70, "chaos": 0.40},
+    "Netherlands": {"laps": 72, "chaos": 0.70},
+    "Italy": {"laps": 53, "chaos": 0.55},
+    "Madrid": {"laps": 57, "chaos": 0.80},
+    "Azerbaijan": {"laps": 51, "chaos": 1.00},
+    "Singapore": {"laps": 62, "chaos": 1.00},
+    "USA": {"laps": 56, "chaos": 0.45},
+    "Mexico": {"laps": 71, "chaos": 0.50},
+    "Brazil": {"laps": 71, "chaos": 0.65},
+    "Las Vegas": {"laps": 50, "chaos": 0.90},
+    "Qatar": {"laps": 57, "chaos": 0.50},
+    "Abu Dhabi": {"laps": 58, "chaos": 0.40}
+}
+
+# Anos disponíveis para análise
+ANOS_F1 = [str(ano) for ano in range(2018, 2027)]
+
 # Helper de Cores de Pneus
 def get_tire_style(compound):
     styles = {
@@ -22,9 +53,14 @@ class SummaryTabUI(QWidget):
         control_frame = QFrame()
         control_layout = QHBoxLayout(control_frame)
         
-        self.sum_year = QLineEdit("2026")
+        self.sum_year = QComboBox()
+        self.sum_year.addItems(ANOS_F1)
+        self.sum_year.setCurrentText("2026") 
         self.sum_year.setFixedWidth(80)
-        self.sum_gp = QLineEdit("Australia")
+        
+        self.sum_gp = QComboBox()
+        self.sum_gp.addItems(list(CIRCUITOS_F1.keys()))
+        self.sum_gp.setCurrentText("Australia") 
         self.sum_gp.setFixedWidth(150)
         
         self.btn_summary = QPushButton("Gerar Resumo Oficial")
@@ -103,8 +139,16 @@ class TelemetryTabUI(QWidget):
         control_frame = QFrame()
         control_layout = QHBoxLayout(control_frame)
         
-        self.ind_year = QLineEdit("2026"); self.ind_year.setFixedWidth(80)
-        self.ind_gp = QLineEdit("Australia"); self.ind_gp.setFixedWidth(150)
+        self.ind_year = QComboBox()
+        self.ind_year.addItems(ANOS_F1)
+        self.ind_year.setCurrentText("2026")
+        self.ind_year.setFixedWidth(80)
+        
+        self.ind_gp = QComboBox()
+        self.ind_gp.addItems(list(CIRCUITOS_F1.keys()))
+        self.ind_gp.setCurrentText("Australia")
+        self.ind_gp.setFixedWidth(150)
+
         self.ind_d1 = QLineEdit("VER"); self.ind_d1.setFixedWidth(80)
         
         # Campo para escolher a volta específica 
@@ -112,7 +156,6 @@ class TelemetryTabUI(QWidget):
         self.ind_lap.setFixedWidth(70)
         self.ind_lap.setPlaceholderText("Volta")
 
-        self.ind_session = QComboBox()
         self.ind_session = QComboBox()
         self.ind_session.addItem("Corrida", "R")
         self.ind_session.addItem("Classificação", "Q")
@@ -149,12 +192,19 @@ class TelemetryTabUI(QWidget):
         control_frame = QFrame()
         control_layout = QHBoxLayout(control_frame)
         
-        self.comp_year = QLineEdit("2026"); self.comp_year.setFixedWidth(80)
-        self.comp_gp = QLineEdit("Australia"); self.comp_gp.setFixedWidth(150)
+        self.comp_year = QComboBox()
+        self.comp_year.addItems(ANOS_F1)
+        self.comp_year.setCurrentText("2026")
+        self.comp_year.setFixedWidth(80)
+        
+        self.comp_gp = QComboBox()
+        self.comp_gp.addItems(list(CIRCUITOS_F1.keys()))
+        self.comp_gp.setCurrentText("Australia")
+        self.comp_gp.setFixedWidth(150)
+
         self.comp_d1 = QLineEdit("VER"); self.comp_d1.setFixedWidth(80); self.comp_d1.setPlaceholderText("Alvo 1")
         self.comp_d2 = QLineEdit("NOR"); self.comp_d2.setFixedWidth(80); self.comp_d2.setPlaceholderText("Alvo 2")
 
-        self.comp_session = QComboBox()
         self.comp_session = QComboBox()
         self.comp_session.addItem("Corrida", "R")
         self.comp_session.addItem("Classificação", "Q")
@@ -204,9 +254,19 @@ class StrategyPredictionUI(QWidget):
         control_frame = QFrame()
         control_layout = QHBoxLayout(control_frame)
         
-        self.fut_gp = QLineEdit("Monza"); self.fut_gp.setPlaceholderText("Circuito")
-        self.fut_laps = QLineEdit("53"); self.fut_laps.setFixedWidth(60)
-        self.fut_chaos = QLineEdit("0.2"); self.fut_chaos.setFixedWidth(80)
+        self.fut_gp = QComboBox()
+        self.fut_gp.addItems(list(CIRCUITOS_F1.keys()))
+        self.fut_gp.setFixedWidth(150)
+        
+        self.fut_laps = QLineEdit()
+        self.fut_laps.setFixedWidth(60)
+        self.fut_laps.setReadOnly(True)
+        self.fut_laps.setStyleSheet("background-color: #27272a; color: #a1a1aa; border: 1px solid #3f3f46;")
+        
+        self.fut_chaos = QLineEdit()
+        self.fut_chaos.setFixedWidth(80)
+        self.fut_chaos.setReadOnly(True)
+        self.fut_chaos.setStyleSheet("background-color: #27272a; color: #a1a1aa; border: 1px solid #3f3f46;")
         
         self.btn_predict = QPushButton("Rodar Simulação")
         self.btn_predict.setObjectName("btn_primary")
@@ -238,6 +298,16 @@ class StrategyPredictionUI(QWidget):
         self.oraculo_chart_frame.setStyleSheet("background-color: #1a1a1a; border-radius: 8px;")
         layout.addWidget(self.oraculo_chart_frame, stretch=1)
 
+        # Conectar o sinal de mudança do combobox e forçar atualização inicial
+        self.fut_gp.currentTextChanged.connect(self.atualizar_dados_circuito)
+        self.fut_gp.setCurrentText("Brazil")
+        self.atualizar_dados_circuito("Brazil")
+
+    def atualizar_dados_circuito(self, circuito_nome):
+        dados = CIRCUITOS_F1.get(circuito_nome, {"laps": 50, "chaos": 0.3})
+        self.fut_laps.setText(str(dados["laps"]))
+        self.fut_chaos.setText(str(dados["chaos"]))
+
     def setup_race_control(self):
         layout = QVBoxLayout(self.subtab_race_control)
         control_frame = QFrame()
@@ -245,8 +315,12 @@ class StrategyPredictionUI(QWidget):
         
         self.live_year = QLineEdit("2026") 
         self.live_year.setFixedWidth(80)
-        self.live_gp = QLineEdit("Australia")
+        
+        self.live_gp = QComboBox()
+        self.live_gp.addItems(list(CIRCUITOS_F1.keys()))
+        self.live_gp.setCurrentText("Brazil")
         self.live_gp.setFixedWidth(150)
+        
         self.live_driver = QLineEdit("VER")
         self.live_driver.setFixedWidth(80)
         

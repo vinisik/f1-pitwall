@@ -136,17 +136,17 @@ class PitWallApp(QMainWindow):
         self.ui_prediction.btn_logs_live.clicked.connect(self.mostrar_log_live)
 
         # Atualizar sessões disponíveis ao mudar ano ou GP
-        self.ui_telemetry.ind_year.editingFinished.connect(self.atualizar_dropdown_sessoes_ind)
-        self.ui_telemetry.ind_gp.editingFinished.connect(self.atualizar_dropdown_sessoes_ind)
+        self.ui_telemetry.ind_year.currentTextChanged.connect(self.atualizar_dropdown_sessoes_ind)
+        self.ui_telemetry.ind_gp.currentTextChanged.connect(self.atualizar_dropdown_sessoes_ind)
         
         # Para a aba comparativa, atualiza as sessões disponíveis ao mudar ano ou GP
-        self.ui_telemetry.comp_year.editingFinished.connect(self.atualizar_dropdown_sessoes_comp)
-        self.ui_telemetry.comp_gp.editingFinished.connect(self.atualizar_dropdown_sessoes_comp)
+        self.ui_telemetry.ind_year.currentTextChanged.connect(self.atualizar_dropdown_sessoes_ind)
+        self.ui_telemetry.ind_gp.currentTextChanged.connect(self.atualizar_dropdown_sessoes_ind)
 
     def atualizar_dropdown_sessoes_ind(self):
         """ Verifica se o GP selecionado tem sessão de Sprint e atualiza o dropdown de sessões para a telemetria individual """
-        ano_str = self.ui_telemetry.ind_year.text()
-        gp = self.ui_telemetry.ind_gp.text()
+        ano_str = self.ui_telemetry.ind_year.currentText()
+        gp = self.ui_telemetry.ind_gp.currentText()
         
         if not ano_str.isdigit() or not gp: 
             return
@@ -176,8 +176,8 @@ class PitWallApp(QMainWindow):
 
     def atualizar_dropdown_sessoes_comp(self):
         """ Verifica se o GP selecionado tem sessão de Sprint e atualiza o dropdown de sessões para a telemetria comparativa """
-        ano_str = self.ui_telemetry.comp_year.text()
-        gp = self.ui_telemetry.comp_gp.text()
+        ano_str = self.ui_telemetry.comp_year.currentText()
+        gp = self.ui_telemetry.comp_gp.currentText()
         
         if not ano_str.isdigit() or not gp: 
             return
@@ -233,8 +233,8 @@ class PitWallApp(QMainWindow):
         self.ui_summary.btn_summary.setEnabled(False)
         self.ui_summary.sum_status.setText("Buscando dados...")
         
-        ano = int(self.ui_summary.sum_year.text())
-        gp = self.ui_summary.sum_gp.text()
+        ano = int(self.ui_telemetry.comp_year.currentText())
+        gp = self.ui_telemetry.comp_gp.currentText()
         
         self.worker_summary = SummaryWorker(ano, gp)
         self.worker_summary.success.connect(self.atualizar_resumo)
@@ -425,8 +425,8 @@ class PitWallApp(QMainWindow):
                 self.ui_summary.sum_status.setStyleSheet("color: #e10600;")
                 return
 
-            ano = int(self.ui_summary.sum_year.text())
-            gp = self.ui_summary.sum_gp.text()
+            ano = int(self.ui_summary.sum_year.currentText())
+            gp = self.ui_summary.sum_gp.currentText()
             
             caminho = gerar_pdf_resumo_corrida(ano, gp, self.ultimos_dados_resumo)
             
@@ -444,8 +444,8 @@ class PitWallApp(QMainWindow):
         self.ui_telemetry.ind_status.setText("Extraindo sensores do carro...")
         self.ui_telemetry.ind_status.setStyleSheet("color: #00aeef;")
         
-        y = int(self.ui_telemetry.ind_year.text())
-        gp = self.ui_telemetry.ind_gp.text()
+        y = int(self.ui_telemetry.ind_year.currentText())
+        gp = self.ui_telemetry.ind_gp.currentText()
         d1 = self.ui_telemetry.ind_d1.text().upper()
         lap_input = self.ui_telemetry.ind_lap.text()
         session_id = self.ui_telemetry.ind_session.currentData()
@@ -582,8 +582,8 @@ class PitWallApp(QMainWindow):
 
     def exportar_pdf_telemetria(self):
         try:
-            ano = int(self.ui_telemetry.ind_year.text())
-            gp = self.ui_telemetry.ind_gp.text()
+            ano = int(self.ui_summary.sum_year.currentText())
+            gp = self.ui_summary.sum_gp.currentText()
             piloto = self.ui_telemetry.ind_d1.text().upper()
             
             if hasattr(self, 'ultimos_dados_ind'):
@@ -601,8 +601,8 @@ class PitWallApp(QMainWindow):
         self.ui_telemetry.comp_status.setText("Cruzando telemetrias...")
         self.ui_telemetry.comp_status.setStyleSheet("color: #00aeef;")
         
-        y = int(self.ui_telemetry.comp_year.text())
-        gp = self.ui_telemetry.comp_gp.text()
+        y = int(self.ui_telemetry.comp_year.currentText())
+        gp = self.ui_telemetry.comp_gp.currentText()
         d1 = self.ui_telemetry.comp_d1.text().upper()
         d2 = self.ui_telemetry.comp_d2.text().upper()
         session_id = self.ui_telemetry.comp_session.currentData()
@@ -747,7 +747,7 @@ class PitWallApp(QMainWindow):
         self.ui_prediction.fut_status.setText("Gerando permutações...")
         self.ui_prediction.fut_status.setStyleSheet("color: #00aeef;")
         
-        gp = self.ui_prediction.fut_gp.text()
+        gp = self.ui_prediction.fut_gp.currentText() 
         laps = int(self.ui_prediction.fut_laps.text())
         chaos = float(self.ui_prediction.fut_chaos.text())
         
@@ -841,7 +841,7 @@ class PitWallApp(QMainWindow):
         self.ui_prediction.live_status.setStyleSheet("color: #00aeef;")
         
         y = int(self.ui_prediction.live_year.text())
-        gp = self.ui_prediction.live_gp.text()
+        gp = self.ui_prediction.live_gp.currentText()
         driver = self.ui_prediction.live_driver.text().upper()
         
         if not hasattr(self, 'janela_log_live'):
