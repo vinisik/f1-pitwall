@@ -10,7 +10,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from datetime import datetime
 
 # Define o caminho onde o arquivo será salvo 
-DIRETORIO_PDFS = "relatorios_gerados"
+DIRETORIO_PDFS = "Relatórios"
 if not os.path.exists(DIRETORIO_PDFS):
     os.makedirs(DIRETORIO_PDFS)
 
