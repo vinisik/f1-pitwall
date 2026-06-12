@@ -2,7 +2,9 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
                                QLineEdit, QPushButton, QLabel, QFrame, 
                                QTableWidget, QHeaderView, QComboBox)
 from PySide6.QtCore import Qt
+from app.services.f1_data import obter_corridas_futuras
 from app.constants import CIRCUITOS_F1, ANOS_F1, PILOTOS_F1
+from datetime import datetime 
 
 class SummaryTabUI(QWidget):
     def __init__(self):
@@ -221,7 +223,7 @@ class StrategyPredictionUI(QWidget):
         
         self.subtab_oraculo = QWidget()
         self.subtab_race_control = QWidget()
-        self.subtabs_strategy.addTab(self.subtab_oraculo, "Prever Corrida Futura")
+        self.subtabs_strategy.addTab(self.subtab_oraculo, "Prever Corrida Futura (2026)")
         self.subtabs_strategy.addTab(self.subtab_race_control, "Simular Estratégia")
         
         self.setup_oraculo()
@@ -233,7 +235,11 @@ class StrategyPredictionUI(QWidget):
         control_layout = QHBoxLayout(control_frame)
         
         self.fut_gp = QComboBox()
-        self.fut_gp.addItems(list(CIRCUITOS_F1.keys()))
+        ano_atual = datetime.now().year
+
+        gps_futuros = obter_corridas_futuras(ano_atual)
+
+        self.fut_gp.addItems(gps_futuros)
         self.fut_gp.setPlaceholderText("Circuito")
         self.fut_gp.setCurrentIndex(-1)
         self.fut_gp.setFixedWidth(150)

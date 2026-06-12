@@ -3,7 +3,7 @@ import sys
 import numpy as np
 from PySide6.QtWidgets import QApplication, QDialog, QMainWindow, QTextEdit, QWidget, QVBoxLayout, QTabWidget, QTableWidgetItem, QLabel, QHBoxLayout
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QFont, QPixmap
+from PySide6.QtGui import QColor, QFont, QIcon, QPixmap
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.gridspec import GridSpec
@@ -1158,8 +1158,11 @@ class PitWallApp(QMainWindow):
 
 
 if __name__ == "__main__":
+    caminho_base = os.path.dirname(os.path.dirname(__file__))
     app = QApplication(sys.argv)
     app.setFont(QFont("Arial", 10))
     window = PitWallApp()
     window.show()
+    icon_path = os.path.join(caminho_base, "app", "ui", "assets", "icon.png")
+    app.setWindowIcon(QIcon(icon_path))
     sys.exit(app.exec())

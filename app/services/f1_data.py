@@ -2,6 +2,7 @@ import fastf1
 import pandas as pd
 import numpy as np
 import os
+from datetime import datetime
 
 CACHE_DIR = 'cache_f1'
 if not os.path.exists(CACHE_DIR):
@@ -58,6 +59,7 @@ def obter_comportamento_historico_pista(ano_alvo: int, gp: str) -> dict:
     return {'SOFT': 15, 'MEDIUM': 25, 'HARD': 38, 'TOTAL_LAPS': 50, 'BASE_PACE': 80.0}
 
 def obter_telemetria_piloto(ano: int, gp: str, piloto: str, sessao: str = 'R'):
+    """Busca os dados de telemetria para um piloto específico em um GP e sessão determinados."""
     try:
         session = fastf1.get_session(ano, gp, sessao)
         session.load(laps=True, telemetry=False, weather=False, messages=False)
@@ -80,6 +82,7 @@ def obter_telemetria_piloto(ano: int, gp: str, piloto: str, sessao: str = 'R'):
         return {"erro": f"Falha ao processar telemetria: {str(e)}"}
     
 def obter_resumo_corrida(ano: int, gp: str):
+    """Gera um resumo detalhado da corrida, incluindo posições, stints, pit stops e gráficos de desempenho."""
     try:
         session = fastf1.get_session(ano, gp, 'R')
         session.load(telemetry=False, weather=False, messages=False)
@@ -185,11 +188,13 @@ def comparar_telemetria(ano: int, gp: str, piloto1: str, piloto2: str, sessao: s
         else:
             lap2 = laps2.pick_fastest()
 
+        # Validação de voltas
         if lap1 is None or lap1.empty or pd.isna(lap1.get('LapTime')): return {"erro": f"Volta inválida para {piloto1}."}
         if lap2 is None or lap2.empty or pd.isna(lap2.get('LapTime')): return {"erro": f"Volta inválida para {piloto2}."}
 
         colunas_alvo = ['Distance', 'Speed', 'Throttle', 'Brake', 'nGear', 'RPM', 'X', 'Y']
         
+        # Renomeia as colunas para evitar conflitos e facilitar a comparação
         tel1 = lap1.get_telemetry()[colunas_alvo].rename(columns={col: f'{col}_{piloto1}' for col in colunas_alvo if col != 'Distance'})
         tel2 = lap2.get_telemetry()[colunas_alvo].rename(columns={col: f'{col}_{piloto2}' for col in colunas_alvo if col != 'Distance'})
         
@@ -230,6 +235,7 @@ def obter_hierarquia_atual(ano_alvo: int, tentativas: int = 0) -> dict:
             
         hoje = pd.Timestamp.now(tz='UTC')
         
+        # Garantir que as datas estejam em UTC para comparação correta
         datas_eventos = schedule['EventDate']
         if datas_eventos.dt.tz is None:
             schedule['EventDate'] = datas_eventos.dt.tz_localize('UTC')
@@ -252,16 +258,16 @@ def obter_hierarquia_atual(ano_alvo: int, tentativas: int = 0) -> dict:
             print(f"Sem voltas registradas em {ultima_etapa}. Tentando etapa anterior...")
             return obter_hierarquia_atual(ano_alvo - 1, tentativas + 1)
         
-        # Extrai as matrizes de voltas rápidas e cria uma cópia para evitar SettingWithCopyWarning
+        # Extrai as matrizes de voltas rápidas e cria uma cópia para manipulação
         voltas = session.laps.pick_track_status('1').pick_quicklaps().copy()
         
         # Converte os tempos de volta para segundos
         voltas['LapTime_s'] = voltas['LapTime'].dt.total_seconds()
         
-        # Ritmo mediano da corrida (Baseline)
+        # Ritmo mediano da corrida 
         pace_geral = voltas['LapTime_s'].median()
         
-        # Ritmo mediano individual por piloto (agora operando sobre a coluna numérica)
+        # Ritmo mediano individual por piloto 
         pace_pilotos = voltas.groupby('Driver')['LapTime_s'].median()
         
         hierarquia = {}
@@ -280,6 +286,54 @@ def obter_hierarquia_atual(ano_alvo: int, tentativas: int = 0) -> dict:
         print(f"Erro não previsto ao calcular hierarquia dinâmica: {e}")
         return obter_hierarquia_atual(ano_alvo - 1, tentativas + 1)
     
+def obter_corridas_futuras(ano):
+    """
+    Conecta à API do FastF1 para buscar o calendário oficial do ano indicado
+    e retorna apenas os GPs que ainda não aconteceram.
+    """
+    try:
+        schedule = fastf1.get_event_schedule(ano)
+        hoje = datetime.now()
+        gps_futuros = []
+        
+        for index, row in schedule.iterrows():
+            if row['EventFormat'] == 'testing':
+                continue
+                
+            data_corrida = row['EventDate']
+            
+            if data_corrida >= hoje:
+                country = row['Country']
+                
+                location = str(row.get('Location', ''))
+                event_name = str(row.get('EventName', ''))
+                
+                # Padroniza o nome do país
+                if country == "United States": country = "USA"
+                if country == "UK": country = "Great Britain"
+                if country == "United Arab Emirates": country = "Abu Dhabi"
+                
+                # Tratamento para o GP da Espanha 
+                if country == "Spain":
+                    if "Madrid" in location or "Madrid" in event_name:
+                        country = "Madrid"
+                    else:
+                        country = "Barcelona"
+                        
+                # Tratamento para Imola e Monza
+                if country == "Italy" and ("Imola" in location or "Emilia Romagna" in event_name):
+                    country = "Emilia Romagna"
+                elif country == "Italy":
+                    country = "Italy" 
+                
+                if not gps_futuros or gps_futuros[-1] != country:
+                    gps_futuros.append(country)
+                
+        return gps_futuros if gps_futuros else ["Temporada Encerrada"]
+        
+    except Exception as e:
+        print(f"Erro ao buscar calendário na API: {e}")
+        return ["Erro de Conexão"]
 
 def verificar_sprint(ano: int, gp: str) -> bool:
     """
