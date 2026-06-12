@@ -22,9 +22,9 @@ class SummaryTabUI(QWidget):
         control_frame = QFrame()
         control_layout = QHBoxLayout(control_frame)
         
-        self.sum_year = QLineEdit("2025")
+        self.sum_year = QLineEdit("2026")
         self.sum_year.setFixedWidth(80)
-        self.sum_gp = QLineEdit("Brazil")
+        self.sum_gp = QLineEdit("Australia")
         self.sum_gp.setFixedWidth(150)
         
         self.btn_summary = QPushButton("Gerar Resumo Oficial")
@@ -103,8 +103,8 @@ class TelemetryTabUI(QWidget):
         control_frame = QFrame()
         control_layout = QHBoxLayout(control_frame)
         
-        self.ind_year = QLineEdit("2025"); self.ind_year.setFixedWidth(80)
-        self.ind_gp = QLineEdit("Brazil"); self.ind_gp.setFixedWidth(150)
+        self.ind_year = QLineEdit("2026"); self.ind_year.setFixedWidth(80)
+        self.ind_gp = QLineEdit("Australia"); self.ind_gp.setFixedWidth(150)
         self.ind_d1 = QLineEdit("VER"); self.ind_d1.setFixedWidth(80)
         
         # Campo para escolher a volta específica 
@@ -149,8 +149,8 @@ class TelemetryTabUI(QWidget):
         control_frame = QFrame()
         control_layout = QHBoxLayout(control_frame)
         
-        self.comp_year = QLineEdit("2025"); self.comp_year.setFixedWidth(80)
-        self.comp_gp = QLineEdit("Brazil"); self.comp_gp.setFixedWidth(150)
+        self.comp_year = QLineEdit("2026"); self.comp_year.setFixedWidth(80)
+        self.comp_gp = QLineEdit("Australia"); self.comp_gp.setFixedWidth(150)
         self.comp_d1 = QLineEdit("VER"); self.comp_d1.setFixedWidth(80); self.comp_d1.setPlaceholderText("Alvo 1")
         self.comp_d2 = QLineEdit("NOR"); self.comp_d2.setFixedWidth(80); self.comp_d2.setPlaceholderText("Alvo 2")
 
@@ -191,16 +191,16 @@ class StrategyPredictionUI(QWidget):
         self.subtabs_strategy.setObjectName("subtabs") 
         layout.addWidget(self.subtabs_strategy)
         
-        self.subtab_oracle = QWidget()
+        self.subtab_oraculo = QWidget()
         self.subtab_race_control = QWidget()
-        self.subtabs_strategy.addTab(self.subtab_oracle, "Prever Corrida Futura")
+        self.subtabs_strategy.addTab(self.subtab_oraculo, "Prever Corrida Futura")
         self.subtabs_strategy.addTab(self.subtab_race_control, "Simular Estratégia")
         
-        self.setup_oracle()
+        self.setup_oraculo()
         self.setup_race_control()
 
-    def setup_oracle(self):
-        layout = QVBoxLayout(self.subtab_oracle)
+    def setup_oraculo(self):
+        layout = QVBoxLayout(self.subtab_oraculo)
         control_frame = QFrame()
         control_layout = QHBoxLayout(control_frame)
         
@@ -211,8 +211,8 @@ class StrategyPredictionUI(QWidget):
         self.btn_predict = QPushButton("Rodar Simulação")
         self.btn_predict.setObjectName("btn_primary")
         
-        self.btn_logs_oracle = QPushButton("Terminal")
-        self.btn_logs_oracle.setStyleSheet("background-color: #27272a; color: #a1a1aa; border: 1px solid #3f3f46;")
+        self.btn_logs_oraculo = QPushButton("Terminal")
+        self.btn_logs_oraculo.setStyleSheet("background-color: #27272a; color: #a1a1aa; border: 1px solid #3f3f46;")
         
         self.fut_status = QLabel("")
 
@@ -223,20 +223,20 @@ class StrategyPredictionUI(QWidget):
         control_layout.addWidget(QLabel("Prob. Chuva/SC:"))
         control_layout.addWidget(self.fut_chaos)
         control_layout.addWidget(self.btn_predict)
-        control_layout.addWidget(self.btn_logs_oracle) 
+        control_layout.addWidget(self.btn_logs_oraculo) 
         control_layout.addWidget(self.fut_status)
         control_layout.addStretch()
         layout.addWidget(control_frame)
 
-        self.oracle_podium = QLabel("Simule para ver o pódio previsto...")
-        self.oracle_podium.setStyleSheet("font-size: 18px; color: #e2d014; font-weight: bold; padding: 10px; background-color: #1a1a1a; border-radius: 6px;")
-        self.oracle_podium.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.oracle_podium)
+        self.oraculo_podium = QLabel("Simule para ver o pódio previsto...")
+        self.oraculo_podium.setStyleSheet("font-size: 18px; color: #e2d014; font-weight: bold; padding: 10px; background-color: #1a1a1a; border-radius: 6px;")
+        self.oraculo_podium.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.oraculo_podium)
 
-        self.oracle_chart_frame = QFrame()
-        self.oracle_chart_layout = QVBoxLayout(self.oracle_chart_frame)
-        self.oracle_chart_frame.setStyleSheet("background-color: #1a1a1a; border-radius: 8px;")
-        layout.addWidget(self.oracle_chart_frame, stretch=1)
+        self.oraculo_chart_frame = QFrame()
+        self.oraculo_chart_layout = QVBoxLayout(self.oraculo_chart_frame)
+        self.oraculo_chart_frame.setStyleSheet("background-color: #1a1a1a; border-radius: 8px;")
+        layout.addWidget(self.oraculo_chart_frame, stretch=1)
 
     def setup_race_control(self):
         layout = QVBoxLayout(self.subtab_race_control)
@@ -245,7 +245,7 @@ class StrategyPredictionUI(QWidget):
         
         self.live_year = QLineEdit("2026") 
         self.live_year.setFixedWidth(80)
-        self.live_gp = QLineEdit("Brazil")
+        self.live_gp = QLineEdit("Australia")
         self.live_gp.setFixedWidth(150)
         self.live_driver = QLineEdit("VER")
         self.live_driver.setFixedWidth(80)

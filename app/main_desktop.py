@@ -3,13 +3,14 @@ import sys
 import numpy as np
 from PySide6.QtWidgets import QApplication, QDialog, QMainWindow, QTextEdit, QWidget, QVBoxLayout, QTabWidget, QTableWidgetItem, QLabel, QHBoxLayout
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QFont
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.gridspec import GridSpec
 from app.ui.tabs import SummaryTabUI, TelemetryTabUI, StrategyPredictionUI, get_tire_style
 from app.workers import SingleTelemetryWorker, TelemetryWorker, StrategyWorker, SummaryWorker, FuturePredictionWorker
 from app.services.reports import gerar_pdf_estrategia, gerar_pdf_telemetria, gerar_pdf_resumo_corrida
+from app.services.f1_data import verificar_sprint
 
 class TerminalDialog(QDialog):
     def __init__(self, parent=None, title="Terminal de Engenharia"):
@@ -55,7 +56,7 @@ class PitWallApp(QMainWindow):
         self.ind_canvas = None
         self.comp_canvas = None
         self.live_canvas = None
-        self.oracle_canvas = None
+        self.oraculo_canvas = None
 
         self.sum_pos_canvas = None
         self.sum_pace_canvas = None
@@ -97,29 +98,100 @@ class PitWallApp(QMainWindow):
         self.tabs.setCurrentIndex(2)
 
     def conectar_sinais(self):
-        """ Conecta os botões da View com as Funções lógicas do Controlador """        
+        """ Conecta os botões da View com as Funções lógicas do Controlador """    
+
+        # Resumo da Corrida    
         self.ui_summary.btn_summary.clicked.connect(self.iniciar_resumo)
         self.ui_summary.btn_export_sum.clicked.connect(self.exportar_pdf_resumo)
         
+        # Telemetria
         self.ui_telemetry.btn_ind.clicked.connect(self.iniciar_telemetria_ind)
         self.ui_telemetry.btn_export_tel.clicked.connect(self.exportar_pdf_telemetria)
         self.ui_telemetry.btn_comp.clicked.connect(self.iniciar_telemetria_comp)
-        
+
+        # Previsões e Estratégia
         self.ui_prediction.btn_predict.clicked.connect(self.iniciar_previsao_futura)
         self.ui_prediction.btn_live.clicked.connect(self.iniciar_estrategia)
         
-        self.ui_prediction.btn_logs_oracle.clicked.connect(self.mostrar_log_oracle)
+        # Logs
+        self.ui_prediction.btn_logs_oraculo.clicked.connect(self.mostrar_log_oraculo)
         self.ui_prediction.btn_logs_live.clicked.connect(self.mostrar_log_live)
 
-    def mostrar_log_oracle(self):
-        if not hasattr(self, 'janela_log_oracle'):
-            self.janela_log_oracle = TerminalDialog(self, "Terminal - Previsão de Corrida")
-            if hasattr(self, 'worker_oracle'):
-                log_signal = getattr(self.worker_oracle, 'log_msg', None)
-                if log_signal is not None:
-                    log_signal.connect(self.janela_log_oracle.log)
+        # Atualizar sessões disponíveis ao mudar ano ou GP
+        self.ui_telemetry.ind_year.editingFinished.connect(self.atualizar_dropdown_sessoes_ind)
+        self.ui_telemetry.ind_gp.editingFinished.connect(self.atualizar_dropdown_sessoes_ind)
         
-        self.janela_log_oracle.show()
+        # Para a aba comparativa, atualiza as sessões disponíveis ao mudar ano ou GP
+        self.ui_telemetry.comp_year.editingFinished.connect(self.atualizar_dropdown_sessoes_comp)
+        self.ui_telemetry.comp_gp.editingFinished.connect(self.atualizar_dropdown_sessoes_comp)
+
+    def atualizar_dropdown_sessoes_ind(self):
+        """ Verifica se o GP selecionado tem sessão de Sprint e atualiza o dropdown de sessões para a telemetria individual """
+        ano_str = self.ui_telemetry.ind_year.text()
+        gp = self.ui_telemetry.ind_gp.text()
+        
+        if not ano_str.isdigit() or not gp: 
+            return
+        
+        # Verifica se o GP tem sessão de Sprint e atualiza o dropdown de sessões
+        is_sprint = verificar_sprint(int(ano_str), gp)
+        cb = self.ui_telemetry.ind_session
+        selecionado = cb.currentData() 
+        
+        cb.clear()
+        cb.addItem("Corrida", "R")
+        cb.addItem("Classificação", "Q")
+        
+        # Se o Grande Premio tiver Sprint, adiciona as opções de sessão de Sprint
+        if is_sprint:
+            cb.addItem("Sprint", "S")
+            cb.addItem("Sprint Qualy", "SQ")
+            
+        cb.addItem("Treino 1", "FP1")
+        cb.addItem("Treino 2", "FP2")
+        cb.addItem("Treino 3", "FP3")
+        
+        # Restaura a seleção se a opção ainda existir, senão volta para Corrida
+        idx = cb.findData(selecionado)
+        cb.setCurrentIndex(idx if idx >= 0 else 0)
+
+
+    def atualizar_dropdown_sessoes_comp(self):
+        """ Verifica se o GP selecionado tem sessão de Sprint e atualiza o dropdown de sessões para a telemetria comparativa """
+        ano_str = self.ui_telemetry.comp_year.text()
+        gp = self.ui_telemetry.comp_gp.text()
+        
+        if not ano_str.isdigit() or not gp: 
+            return
+            
+        is_sprint = verificar_sprint(int(ano_str), gp)
+        cb = self.ui_telemetry.comp_session
+        selecionado = cb.currentData() 
+        
+        cb.clear()
+        cb.addItem("Corrida", "R")
+        cb.addItem("Classificação", "Q")
+        
+        if is_sprint:
+            cb.addItem("Sprint", "S")
+            cb.addItem("Sprint Qualy", "SQ")
+            
+        cb.addItem("Treino 1", "FP1")
+        cb.addItem("Treino 2", "FP2")
+        cb.addItem("Treino 3", "FP3")
+        
+        idx = cb.findData(selecionado)
+        cb.setCurrentIndex(idx if idx >= 0 else 0)
+
+    def mostrar_log_oraculo(self):
+        if not hasattr(self, 'janela_log_oraculo'):
+            self.janela_log_oraculo = TerminalDialog(self, "Terminal - Previsão de Corrida")
+            if hasattr(self, 'worker_oraculo'):
+                log_signal = getattr(self.worker_oraculo, 'log_msg', None)
+                if log_signal is not None:
+                    log_signal.connect(self.janela_log_oraculo.log)
+        
+        self.janela_log_oraculo.show()
 
     def mostrar_log_live(self):
         if not hasattr(self, 'janela_log_live'):
@@ -661,18 +733,18 @@ class PitWallApp(QMainWindow):
         laps = int(self.ui_prediction.fut_laps.text())
         chaos = float(self.ui_prediction.fut_chaos.text())
         
-        if not hasattr(self, 'janela_log_oracle'):
-            self.janela_log_oracle = TerminalDialog(self, "Terminal - Previsão de Corrida")
+        if not hasattr(self, 'janela_log_oraculo'):
+            self.janela_log_oraculo = TerminalDialog(self, "Terminal - Previsão de Corrida")
         
-        self.janela_log_oracle.terminal.clear()
+        self.janela_log_oraculo.terminal.clear()
         
-        self.worker_oracle = FuturePredictionWorker(gp, laps, chaos)
+        self.worker_oraculo = FuturePredictionWorker(gp, laps, chaos)
         
-        self.worker_oracle.log_msg.connect(self.janela_log_oracle.log)
+        self.worker_oraculo.log_msg.connect(self.janela_log_oraculo.log)
         
-        self.worker_oracle.success.connect(self.atualizar_previsao)
-        self.worker_oracle.error.connect(lambda e: self.mostrar_erro_aba(self.ui_prediction.fut_status, self.ui_prediction.btn_predict, e))
-        self.worker_oracle.start()
+        self.worker_oraculo.success.connect(self.atualizar_previsao)
+        self.worker_oraculo.error.connect(lambda e: self.mostrar_erro_aba(self.ui_prediction.fut_status, self.ui_prediction.btn_predict, e))
+        self.worker_oraculo.start()
 
     def atualizar_previsao(self, dados):
         self.ui_prediction.btn_predict.setEnabled(True)
@@ -686,11 +758,11 @@ class PitWallApp(QMainWindow):
         
         podio = [item["driver"] for item in classificacao[:3]]
         texto_podio = f"PREVISÃO DO PÓDIO: 1º {podio[0]}  |  2º {podio[1]}  |  3º {podio[2]}"
-        self.ui_prediction.oracle_podium.setText(texto_podio)
+        self.ui_prediction.oraculo_podium.setText(texto_podio)
 
-        if self.oracle_canvas:
-            self.ui_prediction.oracle_chart_layout.removeWidget(self.oracle_canvas)
-            self.oracle_canvas.deleteLater()
+        if self.oraculo_canvas:
+            self.ui_prediction.oraculo_chart_layout.removeWidget(self.oraculo_canvas)
+            self.oraculo_canvas.deleteLater()
             plt.close('all')
 
         fig, ax = plt.subplots(figsize=(10, 5), facecolor='#1a1a1a', dpi=100)
@@ -742,8 +814,8 @@ class PitWallApp(QMainWindow):
         
         fig.tight_layout()
 
-        self.oracle_canvas = FigureCanvas(fig)
-        self.ui_prediction.oracle_chart_layout.addWidget(self.oracle_canvas)
+        self.oraculo_canvas = FigureCanvas(fig)
+        self.ui_prediction.oraculo_chart_layout.addWidget(self.oraculo_canvas)
 
     def iniciar_estrategia(self):
         self.ui_prediction.btn_live.setEnabled(False)
@@ -836,6 +908,7 @@ class PitWallApp(QMainWindow):
             background-color: #1a1a1a; 
             color: #e4e4e7; 
             font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif; 
+            font-size: 13px;
         }
 
         QWidget#app_tab {
@@ -851,6 +924,7 @@ class PitWallApp(QMainWindow):
         QFrame {
             background-color: transparent;
             border: none;
+            font-size: 13px;
         }
 
         /* Barra de Navegação (Header) */
@@ -986,6 +1060,7 @@ class PitWallApp(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    app.setFont(QFont("Arial", 10))
     window = PitWallApp()
     window.show()
     sys.exit(app.exec())

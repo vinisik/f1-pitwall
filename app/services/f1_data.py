@@ -61,7 +61,7 @@ def obter_telemetria_piloto(ano: int, gp: str, piloto: str, sessao: str = 'R'):
     try:
         session = fastf1.get_session(ano, gp, sessao)
         session.load(laps=True, telemetry=False, weather=False, messages=False)
-        laps = session.laps.pick_driver(piloto)
+        laps = session.laps.pick_drivers(piloto)
         
         if laps.empty:
             return {"erro": f"Nenhum dado encontrado para o piloto {piloto} no GP {gp} ({ano})."}
@@ -93,7 +93,7 @@ def obter_resumo_corrida(ano: int, gp: str):
         laps = session.laps
         
         for drv in session.results['Abbreviation']:
-            drv_laps = laps.pick_driver(drv)
+            drv_laps = laps.pick_drivers(drv)
             if drv_laps.empty: continue
                 
             try:
@@ -121,12 +121,12 @@ def obter_resumo_corrida(ano: int, gp: str):
                 "saldo_posicoes": saldo_posicoes, "stints": stints
             })
             
-            # 2. Gráfico de Posições
+            # Gráfico de Posições
             pos_laps = drv_laps['LapNumber'].tolist()
             pos_vals = drv_laps['Position'].tolist()
             posicoes[str(drv)] = {"laps": pos_laps, "pos": pos_vals}
             
-            # 3. Gráfico de Ritmo (Boxplot)
+            # Gráfico de Ritmo (Boxplot)
             # Filtra apenas voltas limpas (Status 1) para o pace real
             paces = drv_laps.pick_track_status('1')['LapTime'].dt.total_seconds().dropna().tolist()
             pace[str(drv)] = paces
@@ -167,8 +167,8 @@ def comparar_telemetria(ano: int, gp: str, piloto1: str, piloto2: str, sessao: s
         session = fastf1.get_session(ano, gp, sessao)
         session.load(telemetry=True, weather=False, messages=False)
         
-        laps1 = session.laps.pick_driver(piloto1)
-        laps2 = session.laps.pick_driver(piloto2)
+        laps1 = session.laps.pick_drivers(piloto1)
+        laps2 = session.laps.pick_drivers(piloto2)
         
         if laps1.empty or laps2.empty: return {"erro": "Piloto não encontrado ou sem voltas."}
 
@@ -279,3 +279,17 @@ def obter_hierarquia_atual(ano_alvo: int, tentativas: int = 0) -> dict:
     except Exception as e:
         print(f"Erro não previsto ao calcular hierarquia dinâmica: {e}")
         return obter_hierarquia_atual(ano_alvo - 1, tentativas + 1)
+    
+
+def verificar_sprint(ano: int, gp: str) -> bool:
+    """
+    Consulta o calendário oficial da FIA via FastF1 para verificar
+    se o formato do evento contém sessões de Sprint.
+    """
+    try:
+        evento = fastf1.get_event(ano, gp)
+        formato = str(evento.EventFormat).lower()
+        return 'sprint' in formato
+    except Exception:
+        # Se houver erro, assume que não é sprint para evitar falhas 
+        return False

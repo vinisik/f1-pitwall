@@ -274,7 +274,7 @@ def gerar_pdf_telemetria(ano, gp, piloto, dados):
 
     # Cálculo de métricas baseadas no piloto solicitado
     speed_key = f"Speed_{d1}"
-    # Se os dados vierem da função de comparação para um piloto só, 
+    # Se os dados vierem da função de comparação para um piloto só 
     if speed_key not in telemetry[0] and f"{speed_key}_x" in telemetry[0]:
         speed_key = f"{speed_key}_x"
 
