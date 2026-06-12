@@ -7,10 +7,12 @@ from PySide6.QtGui import QColor, QFont, QPixmap
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.gridspec import GridSpec
-from app.ui.tabs import SummaryTabUI, TelemetryTabUI, StrategyPredictionUI, get_tire_style
+from app.ui.tabs import SummaryTabUI, TelemetryTabUI, StrategyPredictionUI
+from app.constants import get_estilo_pneu
 from app.workers import SingleTelemetryWorker, TelemetryWorker, StrategyWorker, SummaryWorker, FuturePredictionWorker
 from app.services.reports import gerar_pdf_estrategia, gerar_pdf_telemetria, gerar_pdf_resumo_corrida
 from app.services.f1_data import verificar_sprint
+from app.constants import CIRCUITOS_F1, PILOTOS_F1
 
 class TerminalDialog(QDialog):
     def __init__(self, parent=None, title="Terminal de Engenharia"):
@@ -139,16 +141,36 @@ class PitWallApp(QMainWindow):
         self.ui_telemetry.ind_year.currentTextChanged.connect(self.atualizar_dropdown_sessoes_ind)
         self.ui_telemetry.ind_gp.currentTextChanged.connect(self.atualizar_dropdown_sessoes_ind)
         
-        # Para a aba comparativa, atualiza as sessões disponíveis ao mudar ano ou GP
-        self.ui_telemetry.ind_year.currentTextChanged.connect(self.atualizar_dropdown_sessoes_ind)
-        self.ui_telemetry.ind_gp.currentTextChanged.connect(self.atualizar_dropdown_sessoes_ind)
+        # Para a aba comparativa, atualiza as sessões disponíveis ao mudar ano ou GP 
+        self.ui_telemetry.comp_year.currentTextChanged.connect(self.atualizar_dropdown_sessoes_comp)
+        self.ui_telemetry.comp_gp.currentTextChanged.connect(self.atualizar_dropdown_sessoes_comp)
+
+        # Aba Resumo
+        self.ui_summary.sum_year.currentTextChanged.connect(
+            lambda ano: self.filtrar_por_ano(ano, self.ui_summary.sum_gp, [])
+        )
+        
+        # Aba Telemetria Individual
+        self.ui_telemetry.ind_year.currentTextChanged.connect(
+            lambda ano: self.filtrar_por_ano(ano, self.ui_telemetry.ind_gp, [self.ui_telemetry.ind_d1])
+        )
+        
+        # Aba Telemetria Comparativa
+        self.ui_telemetry.comp_year.currentTextChanged.connect(
+            lambda ano: self.filtrar_por_ano(ano, self.ui_telemetry.comp_gp, [self.ui_telemetry.comp_d1, self.ui_telemetry.comp_d2])
+        )
+        
+        # Aba Estratégia Live 
+        self.ui_prediction.live_year.currentTextChanged.connect(
+            lambda ano: self.filtrar_por_ano(ano, self.ui_prediction.live_gp, [self.ui_prediction.live_driver])
+        )
 
     def atualizar_dropdown_sessoes_ind(self):
         """ Verifica se o GP selecionado tem sessão de Sprint e atualiza o dropdown de sessões para a telemetria individual """
         ano_str = self.ui_telemetry.ind_year.currentText()
         gp = self.ui_telemetry.ind_gp.currentText()
         
-        if not ano_str.isdigit() or not gp: 
+        if not ano_str or not ano_str.isdigit() or not gp: 
             return
         
         # Verifica se o GP tem sessão de Sprint e atualiza o dropdown de sessões
@@ -179,7 +201,7 @@ class PitWallApp(QMainWindow):
         ano_str = self.ui_telemetry.comp_year.currentText()
         gp = self.ui_telemetry.comp_gp.currentText()
         
-        if not ano_str.isdigit() or not gp: 
+        if not ano_str or not ano_str.isdigit() or not gp: 
             return
             
         is_sprint = verificar_sprint(int(ano_str), gp)
@@ -200,6 +222,40 @@ class PitWallApp(QMainWindow):
         
         idx = cb.findData(selecionado)
         cb.setCurrentIndex(idx if idx >= 0 else 0)
+
+
+    def filtrar_por_ano(self, ano_str, cb_gp, cb_pilotos_lista):
+        """
+        Recebe o ano alterado e atualiza as opções do GP e dos Pilotos.
+        Se a opção atual não for válida para o novo ano, volta ao placeholder.
+        """
+
+        if not ano_str or not ano_str.isdigit(): return
+        ano = int(ano_str)
+        
+        # Filtra os GPs
+        gp_atual = cb_gp.currentText()
+        cb_gp.clear()
+        gps_validos = [gp for gp, dados in CIRCUITOS_F1.items() if ano in dados.get("years", [])]
+        cb_gp.addItems(sorted(gps_validos))
+        
+        if gp_atual in gps_validos:
+            cb_gp.setCurrentText(gp_atual) # Mantém a seleção se a pista existia naquele ano
+        else:
+            cb_gp.setCurrentIndex(-1) # Volta ao placeholder se o GP for inválido
+            
+        # Filtra os Pilotos
+        pilotos_validos = [p for p, anos in PILOTOS_F1.items() if ano in anos]
+        pilotos_validos_sorted = sorted(pilotos_validos)
+        
+        for cb_piloto in cb_pilotos_lista:
+            p_atual = cb_piloto.currentText()
+            cb_piloto.clear()
+            cb_piloto.addItems(pilotos_validos_sorted)
+            if p_atual in pilotos_validos_sorted:
+                cb_piloto.setCurrentText(p_atual)
+            else:
+                cb_piloto.setCurrentIndex(-1) # Volta ao placeholder se o Piloto for inválido
 
     def mostrar_log_oraculo(self):
         if not hasattr(self, 'janela_log_oraculo'):
@@ -230,11 +286,16 @@ class PitWallApp(QMainWindow):
 
     # ABA DE RESUMO
     def iniciar_resumo(self):
+        # Validação de Placeholders
+        if self.ui_summary.sum_year.currentIndex() == -1 or self.ui_summary.sum_gp.currentIndex() == -1:
+            self.mostrar_erro_aba(self.ui_summary.sum_status, self.ui_summary.btn_summary, "Por favor, preencha o Ano e o GP.")
+            return
+
         self.ui_summary.btn_summary.setEnabled(False)
         self.ui_summary.sum_status.setText("Buscando dados...")
         
-        ano = int(self.ui_telemetry.comp_year.currentText())
-        gp = self.ui_telemetry.comp_gp.currentText()
+        ano = int(self.ui_summary.sum_year.currentText())
+        gp = self.ui_summary.sum_gp.currentText()
         
         self.worker_summary = SummaryWorker(ano, gp)
         self.worker_summary.success.connect(self.atualizar_resumo)
@@ -289,7 +350,7 @@ class PitWallApp(QMainWindow):
             for stint in row.get('stints', []):
                 composto = stint.get('composto', 'UNKNOWN')
                 voltas = stint.get('voltas', 0)
-                estilo = get_tire_style(composto)
+                estilo = get_estilo_pneu(composto)
                 lbl_pneu = QLabel(f"{voltas}v")
                 lbl_pneu.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 lbl_pneu.setFixedSize(40, 24) 
@@ -440,13 +501,18 @@ class PitWallApp(QMainWindow):
 
     # TELEMETRIA INDIVIDUAL
     def iniciar_telemetria_ind(self):
+        # Validação de Placeholders
+        if self.ui_telemetry.ind_year.currentIndex() == -1 or self.ui_telemetry.ind_gp.currentIndex() == -1 or self.ui_telemetry.ind_d1.currentIndex() == -1:
+            self.mostrar_erro_aba(self.ui_telemetry.ind_status, self.ui_telemetry.btn_ind, "Por favor, preencha Ano, Circuito e Piloto.")
+            return
+
         self.ui_telemetry.btn_ind.setEnabled(False)
         self.ui_telemetry.ind_status.setText("Extraindo sensores do carro...")
         self.ui_telemetry.ind_status.setStyleSheet("color: #00aeef;")
         
         y = int(self.ui_telemetry.ind_year.currentText())
         gp = self.ui_telemetry.ind_gp.currentText()
-        d1 = self.ui_telemetry.ind_d1.text().upper()
+        d1 = self.ui_telemetry.ind_d1.currentText()
         lap_input = self.ui_telemetry.ind_lap.text()
         session_id = self.ui_telemetry.ind_session.currentData()
         
@@ -584,7 +650,7 @@ class PitWallApp(QMainWindow):
         try:
             ano = int(self.ui_summary.sum_year.currentText())
             gp = self.ui_summary.sum_gp.currentText()
-            piloto = self.ui_telemetry.ind_d1.text().upper()
+            piloto = self.ui_telemetry.ind_d1.currentText()
             
             if hasattr(self, 'ultimos_dados_ind'):
                 caminho = gerar_pdf_telemetria(ano, gp, piloto, self.ultimos_dados_ind)
@@ -597,14 +663,19 @@ class PitWallApp(QMainWindow):
 
     # TELEMETRIA COMPARATIVA
     def iniciar_telemetria_comp(self):
+        # Validação de Placeholders
+        if self.ui_telemetry.comp_year.currentIndex() == -1 or self.ui_telemetry.comp_gp.currentIndex() == -1 or self.ui_telemetry.comp_d1.currentIndex() == -1 or self.ui_telemetry.comp_d2.currentIndex() == -1:
+            self.mostrar_erro_aba(self.ui_telemetry.comp_status, self.ui_telemetry.btn_comp, "Por favor, preencha Ano, Circuito e ambos os Pilotos.")
+            return
+
         self.ui_telemetry.btn_comp.setEnabled(False)
         self.ui_telemetry.comp_status.setText("Cruzando telemetrias...")
         self.ui_telemetry.comp_status.setStyleSheet("color: #00aeef;")
         
         y = int(self.ui_telemetry.comp_year.currentText())
         gp = self.ui_telemetry.comp_gp.currentText()
-        d1 = self.ui_telemetry.comp_d1.text().upper()
-        d2 = self.ui_telemetry.comp_d2.text().upper()
+        d1 = self.ui_telemetry.comp_d1.currentText()
+        d2 = self.ui_telemetry.comp_d2.currentText()
         session_id = self.ui_telemetry.comp_session.currentData()
         
         self.worker_comp = TelemetryWorker(y, gp, d1, d2, session_id)
@@ -644,7 +715,7 @@ class PitWallApp(QMainWindow):
         y_map = np.array([r.get(f'Y_{d1}', 0) for r in valid_rows])
 
         fig = plt.figure(figsize=(10, 12), facecolor='#1a1a1a', dpi=100)
-        gs = GridSpec(5, 1, height_ratios=[5, 1.5, 1, 1, 1], hspace=0.3)
+        gs = GridSpec(5, 1, height_ratios=[5, 1.5, 1, 1, 1], hspace=0.35)
         fig.patch.set_facecolor('#1a1a1a')
 
         ax_map = fig.add_subplot(gs[0], facecolor='#1a1a1a')
@@ -743,6 +814,11 @@ class PitWallApp(QMainWindow):
 
     # PREVISÃO E ESTRATÉGIA
     def iniciar_previsao_futura(self):
+        # Validação de Placeholders
+        if self.ui_prediction.fut_gp.currentIndex() == -1:
+            self.mostrar_erro_aba(self.ui_prediction.fut_status, self.ui_prediction.btn_predict, "Por favor, selecione um Circuito.")
+            return
+
         self.ui_prediction.btn_predict.setEnabled(False)
         self.ui_prediction.fut_status.setText("Gerando permutações...")
         self.ui_prediction.fut_status.setStyleSheet("color: #00aeef;")
@@ -836,13 +912,18 @@ class PitWallApp(QMainWindow):
         self.ui_prediction.oraculo_chart_layout.addWidget(self.oraculo_canvas)
 
     def iniciar_estrategia(self):
+        # Validação de Placeholders
+        if self.ui_prediction.live_year.currentIndex() == -1 or self.ui_prediction.live_gp.currentIndex() == -1 or self.ui_prediction.live_driver.currentIndex() == -1:
+            self.mostrar_erro_aba(self.ui_prediction.live_status, self.ui_prediction.btn_live, "Por favor, preencha Ano, GP e Piloto.")
+            return
+
         self.ui_prediction.btn_live.setEnabled(False)
         self.ui_prediction.live_status.setText("Calculando...")
         self.ui_prediction.live_status.setStyleSheet("color: #00aeef;")
         
-        y = int(self.ui_prediction.live_year.text())
+        y = int(self.ui_prediction.live_year.currentText())
         gp = self.ui_prediction.live_gp.currentText()
-        driver = self.ui_prediction.live_driver.text().upper()
+        driver = self.ui_prediction.live_driver.currentText()
         
         if not hasattr(self, 'janela_log_live'):
             self.janela_log_live = TerminalDialog(self, "Terminal - Previsão de Estratégia")
