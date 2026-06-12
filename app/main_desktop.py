@@ -3,7 +3,7 @@ import sys
 import numpy as np
 from PySide6.QtWidgets import QApplication, QDialog, QMainWindow, QTextEdit, QWidget, QVBoxLayout, QTabWidget, QTableWidgetItem, QLabel, QHBoxLayout
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QFont
+from PySide6.QtGui import QColor, QFont, QPixmap
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.gridspec import GridSpec
@@ -44,7 +44,7 @@ class TerminalDialog(QDialog):
 class PitWallApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("F1 Pit Wall - Engenharia")
+        self.setWindowTitle("F1 PitWall")
         self.resize(1300, 850)
         self.setMinimumSize(1000, 700)
 
@@ -78,6 +78,24 @@ class PitWallApp(QMainWindow):
 
         self.tabs = QTabWidget()
         self.tabs.setObjectName("MainTabs")
+        self.logo_label = QLabel()
+        
+        # Mapeia o caminho exato da imagem assumindo a estrutura do projeto
+        caminho_base = os.path.dirname(os.path.dirname(__file__))
+        logo_path = os.path.join(caminho_base, "app", "ui", "assets", "logo.png")
+        
+        if os.path.exists(logo_path):
+            pixmap = QPixmap(logo_path)
+            pixmap = pixmap.scaledToHeight(45, Qt.TransformationMode.SmoothTransformation)
+            self.logo_label.setPixmap(pixmap)
+            self.logo_label.setContentsMargins(10, 10, 10, 10) 
+        else:
+            # Fallback para caso não tenha imagem
+            self.logo_label.setText(" F1 PIT WALL ")
+            self.logo_label.setStyleSheet("color: #e10600; font-weight: bold; font-size: 20px; padding: 20px;")
+            
+        self.tabs.setCornerWidget(self.logo_label, Qt.Corner.TopLeftCorner)
+
         main_layout.addWidget(self.tabs)
 
         self.ui_summary = SummaryTabUI()
@@ -95,7 +113,7 @@ class PitWallApp(QMainWindow):
 
         # Conectando as ações
         self.conectar_sinais()
-        self.tabs.setCurrentIndex(2)
+        self.tabs.setCurrentIndex(0)
 
     def conectar_sinais(self):
         """ Conecta os botões da View com as Funções lógicas do Controlador """    
