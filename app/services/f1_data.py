@@ -10,6 +10,22 @@ if not os.path.exists(CACHE_DIR):
 
 fastf1.Cache.enable_cache(CACHE_DIR)
 
+
+def normalizar_nome_gp(gp: str) -> str:
+    """Padroniza nomes de circuito para o formato aceito pelo FastF1."""
+    if not gp:
+        return gp
+
+    nome = str(gp).strip()
+    substituicoes = {
+        'USA': 'United States',
+        'UK': 'Great Britain',
+        'United Arab Emirates': 'Abu Dhabi',
+        'UAE': 'Abu Dhabi',
+    }
+    return substituicoes.get(nome, nome)
+
+
 def obter_comportamento_historico_pista(ano_alvo: int, gp: str) -> dict:
     """
     Tenta extrair o comportamento histórico da pista para o GP e ano especificados.
@@ -308,8 +324,8 @@ def obter_corridas_futuras(ano):
                 location = str(row.get('Location', ''))
                 event_name = str(row.get('EventName', ''))
                 
-                # Padroniza o nome do país
-                if country == "United States": country = "USA"
+                # Padroniza o nome do país para valores válidos no FastF1
+                country = normalizar_nome_gp(country)
                 if country == "UK": country = "Great Britain"
                 if country == "United Arab Emirates": country = "Abu Dhabi"
                 

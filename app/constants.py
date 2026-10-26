@@ -87,7 +87,7 @@ CIRCUITOS_F1 = {
     "Styria": {"laps": 71, "chaos": 0.40, "years": [2020, 2021]},
     "Turkey": {"laps": 58, "chaos": 0.60, "years": [2020, 2021]},
     "Tuscany": {"laps": 59, "chaos": 0.75, "years": [2020]},
-    "USA": {"laps": 56, "chaos": 0.45, "years": [2018, 2019, 2021, 2022, 2023, 2024, 2025, 2026]}
+    "United States": {"laps": 56, "chaos": 0.45, "years": [2018, 2019, 2021, 2022, 2023, 2024, 2025, 2026]}
 }
 
 # Mapeamento dos compostos de pneus para estilos visuais
